@@ -17,8 +17,8 @@ The basic app setup follows the process in the
 [example chat application](http://socket.io/get-started/chat/).  Follow those
 procedures to set up the framework. Specifically:
 * Create the package.json as it describes
-* npm install express
-* npm install socket.io
+* npm install express, socket.io
+* you may also need to npm install crypto
 * Use the index.js from this repo
 
 To keep the server running in the background, you'll need to set up some kind
@@ -28,7 +28,7 @@ The code is set up to run on SSL, so you'll need to put your SSL keys in the
 directory indicated in the code. Also change the livepollpassword value.
 
 Once set up, put `$CFG['GEN']['livepollserver'] = 'your.server.com'` and
-`$CFG['GEN']['livepollpassword'] = 'yourpassword` in your IMathAS config.php.
+`$CFG['GEN']['livepollpassword'] = 'yourpassword'` in your IMathAS config.php.
 
 ## mmltex
 This script will attempt to convert all the `<math>` tags in an HTML document
