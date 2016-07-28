@@ -1,0 +1,22 @@
+# See https://atom.io/docs/latest/hacking-atom-package-word-count#menus for more details
+'context-menu':
+  'atom-text-editor': [
+    {
+      'label': 'Toggle mysql-to-pdo'
+      'command': 'mysql-to-pdo:toggle'
+    }
+  ]
+'menu': [
+  {
+    'label': 'Packages'
+    'submenu': [
+      'label': 'mysql-to-pdo'
+      'submenu': [
+        {
+          'label': 'Toggle'
+          'command': 'mysql-to-pdo:toggle'
+        }
+      ]
+    ]
+  }
+]
