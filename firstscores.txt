@@ -1,0 +1,33 @@
+#for processing a dump of imas_firstscores
+#
+#load in data
+rawdata = read.csv("imas_firstscores.csv")
+
+df = subset(rawdata, select = c(qsetid, score, timespent))
+
+save(df,file="firstscores.Rda")
+
+
+# trim out zeros and really long values:
+dft <- subset(df, timespent>0 & timespent<3600)
+
+# average time per question:
+avgtimes <- aggregate(timespent ~ qsetid, data=dft, FUN=mean, trim=0.1)
+avgtimes <- round(avgtimes)
+
+
+#trim out scores of 100 (?)
+dfc <- subset(df, score<101)
+
+#average score per question:
+avgsc <- aggregate(score ~ qsetid, data=dfc, FUN=mean, trim=0.1)
+avgsc <- round(avgsc)
+
+# count the data
+cnts <- aggregate(timespent ~ qsetid, data=dft, FUN=length)
+colnames(cnts) <- c("qsetid","counts")
+
+#merge
+tot <- merge(merge(avgtimes,avgsc,by="qsetid"),cnts,by="qsetid")
+
+write.csv(tot,"avgs.csv",row.names=FALSE)
