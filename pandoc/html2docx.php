@@ -47,8 +47,14 @@ function svgfilterscriptcallback($arr) {
 	}
 	$fn = md5($arr[2].$w.$h);
 		
-	
-	$AS->AStoIMG($w+0,$h+0);
+	if (isset($_POST['doubleimgs'])) {
+		$AS->AStoIMG(2*$w+0,2*$h+0);
+	} else {
+		$AS->AStoIMG($w+0,$h+0);
+	}
+	if (isset($_POST['darkgrid'])) {
+		$AS->setGridColor("darkgray");
+	}
 	$AS->processScript($arr[2]);
 	$imgname = $shortname.$imgcnt;
 	$imgcnt++;
