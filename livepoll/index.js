@@ -18,6 +18,9 @@ server.listen(3000);
 var socketio = require('socket.io');
 var io = socketio.listen(server);
 
+app.get('/ping', function(req,res) {
+  res.send('pong');
+});
 
 app.get('/qscored', function(req, res){
   var aid = req.query.aid.toString();
