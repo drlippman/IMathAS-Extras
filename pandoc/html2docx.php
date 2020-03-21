@@ -106,9 +106,9 @@ file_put_contents($filename.'.html', $html);
 
 if (isset($_POST['convertsvg'])) {
 	exec('/usr/bin/pandoc '.$filename.'.html -f html+tex_math_double_backslash -o '.$filename.'.tex');
-	exec('/usr/bin/pandoc '.$filename.'.tex -o '.$filename.'.docx');
+	exec('/usr/bin/pandoc '.$filename.'.tex --filter=pagebreak.php -o '.$filename.'.docx');
 } else {
-	exec('/usr/bin/pandoc '.$filename.'.html -f html+tex_math_double_backslash -o '.$filename.'.docx');
+	exec('/usr/bin/pandoc '.$filename.'.html -f html+tex_math_double_backslash --filter=pagebreak.php -o '.$filename.'.docx');
 }
 	
 header("Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document");
