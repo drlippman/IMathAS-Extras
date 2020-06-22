@@ -13,16 +13,11 @@ Note:
 ## livepoll server
 This sets up a websocket server to enable the LivePoll feature in IMathAS.
 
-The basic app setup follows the process in the
-[example chat application](http://socket.io/get-started/chat/).  Follow those
-procedures to set up the framework. Specifically:
-* Create the package.json as it describes
-* npm install express, socket.io
-* you may also need to npm install crypto
-* Use the index.js from this repo
+* Create a directory and copy into it index.js and package.json
+* Go into the directly and run `npm install`
 
 To keep the server running in the background, you'll need to set up some kind
-of autostart config.
+of autostart config.  
 
 The code is set up to run on SSL, so you'll need to put your SSL keys in the
 directory indicated in the code. Also change the livepollpassword value.

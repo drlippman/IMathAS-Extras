@@ -1,0 +1,12 @@
+{
+  "name": "livepoll-server",
+  "version": "0.0.1",
+  "description": "IMathAS LivePoll server",
+  "dependencies": {
+    "express": "^4.10.2",
+    "os": "^0.1.1",
+    "socket.io": "^2.3.0",
+    "spdy": "^4.0.2"
+  }
+}
+
