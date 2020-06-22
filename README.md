@@ -14,13 +14,28 @@ Note:
 This sets up a websocket server to enable the LivePoll feature in IMathAS.
 
 * Create a directory and copy into it index.js and package.json
-* Go into the directly and run `npm install`
-
-To keep the server running in the background, you'll need to set up some kind
-of autostart config.  
+* Go into the directory and run `npm install`
+* Create a `certs` subdirectory
 
 The code is set up to run on SSL, so you'll need to put your SSL keys in the
 directory indicated in the code. Also change the livepollpassword value.
+
+To setup the SSL
+* Follow the instructions on the Certbot website on how to get a certificate.
+  Note that this will require having a regular (Apache, etc) webserver running
+  as well.
+* Copy `livepoll.sh` into `/etc/letsencrypt/renewal-hooks/deploy/`, and edit it
+  so the `livepoll_cert_root` is the path to the `certs` directory you created
+  earlier.  Make sure to `chmod a+x livepoll.sh`.
+* You may have to manually copy and chmod the certificates into the directory
+  the first time.  The script above should handle updating it when the certs
+  renew.
+
+To keep the server running in the background, you'll need to set up some kind
+of autostart config.  
+* Copy `livepoll.service` to `/lib/systemd/system/`, editing the `ExecStart` 
+  path as needed.
+* Start the server using `sudo systemctl start livepoll`
 
 Once set up, put `$CFG['GEN']['livepollserver'] = 'your.server.com'` and
 `$CFG['GEN']['livepollpassword'] = 'yourpassword'` in your IMathAS config.php.

@@ -1,0 +1,14 @@
+[Unit]
+Description=LivePoll server
+After=network.target
+
+[Service]
+Environment=NODE_PORT=3000
+Type=simple
+User=ubuntu
+ExecStart=/usr/bin/node /home/ubuntu/livepoll/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
