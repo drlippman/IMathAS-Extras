@@ -169,5 +169,20 @@ while (($data = fgetcsv($fi)) !== false) {
 }
 $builder->recordData();
 
+$fi = fopen('world.csv', 'r');
+$data = fgetcsv($fi); // header row
+while (($data = fgetcsv($fi)) !== false) {
+	$builder->addRecord(array(
+		'C',			// type
+		substr(md5($data[1].$data[0]),0,10),	// id
+		cleanname($data[1],false),		// school name
+		'',			// agency
+		$data[0],			// country
+		'',		// state
+		null
+	));
+}
+$builder->recordData();
+
 $builder->done();
 
