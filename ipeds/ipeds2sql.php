@@ -7,6 +7,7 @@ Name the CSV files:
 ipeds.csv
 publick12.csv
 privatek12.csv
+world.csv
 
 */
 
@@ -174,7 +175,7 @@ $data = fgetcsv($fi); // header row
 while (($data = fgetcsv($fi)) !== false) {
 	$builder->addRecord(array(
 		'C',			// type
-		substr(md5($data[1].$data[0]),0,10),	// id
+		md5($data[1].$data[0]),	// id
 		cleanname($data[1],false),		// school name
 		'',			// agency
 		$data[0],			// country

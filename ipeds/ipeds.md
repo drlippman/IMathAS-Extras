@@ -71,7 +71,7 @@ imas_ipeds
   * IPED unitid
   * NCES schoolid
   * NCES agencyid
-  * Custom added school uniqid (usually substr(md5(schoolname . country code),0,10))
+  * Custom added school uniqid (recommended: md5(schoolname . country code))
 * School Name
 * Agency Name
 * Country (2 char)
