@@ -66,7 +66,8 @@ imas_ipeds
   * I: IPED unitid
   * S: NCES schoolid
   * A: NCES agencyid
-  * C: Custom added school uniqid 
+  * W: World, id=md5(schoolname . country code)
+  * C: Custom added school uniqid (recommended: md5(schoolname . country code))
 * ipedsid (base on IPEDS unitid and NCES School ID or Agency ID)
   * IPED unitid
   * NCES schoolid

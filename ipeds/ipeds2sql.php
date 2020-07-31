@@ -9,6 +9,7 @@ publick12.csv
 privatek12.csv
 world.csv
 
+
 */
 
 $states = ['Alabama'=>'AL',
@@ -79,7 +80,10 @@ class Builder {
 	private $alldata = [];
 
 	public function clearExisting() {
-		fwrite($this->fo, "DELETE FROM imas_ipeds WHERE type='I' OR type='S' OR type='A';\n");
+		if ($this->fo === null) {
+			$this->fo = fopen('ipeds.sql', 'w');
+		}
+		fwrite($this->fo, "DELETE FROM imas_ipeds WHERE type='I' OR type='S' OR type='A' OR type='W';\n");
 	}
 	public function addRecord($data) {
 		if (count($data) != 7) {
@@ -87,9 +91,16 @@ class Builder {
 			return;
 		}
 		foreach ($data as $k=>$v) {
-			$data[$k] = trim(preg_replace('/[^\w\.\-\+\s&]/','',$v));
+			$data[$k] = trim(mb_ereg_replace('/[^\w\.\-\+\s&\']/','',$v));
+			if ($k == 6) {
+				if ($v === null) {
+					$data[$k] = 'null';
+				}
+			} else {
+				$data[$k] = "'".str_replace("'","\\'",$data[$k])."'";
+			}
 		}
-		$this->alldata[] = "('".implode("','",$data)."')";
+		$this->alldata[] = "(".implode(",", $data).")";
 		if (count($this->alldata)>100) {
 			$this->recordData();
 		}
@@ -109,7 +120,7 @@ class Builder {
 }
 
 function cleanname($str,$agency) {
-	$str = ucwords(strtolower($str));
+	$str = ucwords(mb_strtolower($str));
 	if ($agency) {
 		$str = preg_replace_callback('/\b(Sd|Isd|Psd|Ccsd|Cusd)\b/', function($m) {
 			return strtoupper($m[0]);
@@ -174,7 +185,7 @@ $fi = fopen('world.csv', 'r');
 $data = fgetcsv($fi); // header row
 while (($data = fgetcsv($fi)) !== false) {
 	$builder->addRecord(array(
-		'C',			// type
+		'W',			// type
 		md5($data[1].$data[0]),	// id
 		cleanname($data[1],false),		// school name
 		'',			// agency
