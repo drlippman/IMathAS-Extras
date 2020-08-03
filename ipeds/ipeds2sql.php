@@ -91,7 +91,6 @@ class Builder {
 			return;
 		}
 		foreach ($data as $k=>$v) {
-			$data[$k] = trim(mb_ereg_replace('/[^\w\.\-\+\s&\']/','',$v));
 			if ($k == 6) {
 				if ($v === null) {
 					$data[$k] = 'null';
@@ -119,8 +118,11 @@ class Builder {
 	}
 }
 
-function cleanname($str,$agency) {
-	$str = ucwords(mb_strtolower($str));
+function cleanname($str,$agency, $ucwords=true) {
+	$str = trim(mb_ereg_replace('[^\w\.\-\+\s&\']','',$str));
+	if ($ucwords) {
+		$str = ucwords(mb_strtolower($str));
+	}
 	if ($agency) {
 		$str = preg_replace_callback('/\b(Sd|Isd|Psd|Ccsd|Cusd)\b/', function($m) {
 			return strtoupper($m[0]);
@@ -184,10 +186,11 @@ $builder->recordData();
 $fi = fopen('world.csv', 'r');
 $data = fgetcsv($fi); // header row
 while (($data = fgetcsv($fi)) !== false) {
+	$data[1] = cleanname($data[1], false, false);
 	$builder->addRecord(array(
 		'W',			// type
 		md5($data[1].$data[0]),	// id
-		cleanname($data[1],false),		// school name
+		$data[1],		// school name
 		'',			// agency
 		$data[0],			// country
 		'',		// state
