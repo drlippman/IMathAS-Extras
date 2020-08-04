@@ -162,7 +162,7 @@ while (($data = fgetcsv($fi)) !== false) {
 		cleanname($data[3],false),		// school name
 		cleanname($data[4],true),			// agency
 		'US',			// country
-		$data[2],		// state
+		trim($data[2]),		// state
 		(strlen($data[6]) > 5) ? substr($data[6],0,5) : $data[6]
 	));
 }
@@ -177,7 +177,7 @@ while (($data = fgetcsv($fi)) !== false) {
 		cleanname($data[2],false),		// school name
 		'',			// agency
 		'US',			// country
-		$data[4],		// state
+		trim($data[4]),		// state
 		(strlen($data[5]) > 5) ? substr($data[5],0,5) : $data[5]
 	));
 }
