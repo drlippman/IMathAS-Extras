@@ -52,6 +52,14 @@ To change the question without reloading the iframe completely, send a postMessa
 * `subject`: `imathas.show`
 * `id`: the ID for the new question
 
+### For multiple questions
+
+If you have multiple questions you want to display at the same time, rather than
+create multiple iframes, change the iframe src to `multiembedq2.php` and for 
+the `id` put a dash-separated list of question IDs.  Most of the other parameters
+available for embedq2 are available for multiembedq2 as well.
+
+Multiembedq2 only works in practice mode, not in scored mode.
 
 
 ## Scored Mode
