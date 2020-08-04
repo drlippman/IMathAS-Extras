@@ -67,6 +67,9 @@ This allows embedding problems in a website with scores passed back to the embed
 This requires an authorization key/secret.
 You can generate this in your own IMathAS system using LTI Provider Creds from the Admin page.
 
+MyOpenMath provides scored embeds as a hosted service, which requires a payment
+agreement.  Contact sales@myopenmath.com for details.  
+
 ### Setup
 
 Generate a [JWT](https://jwt.io/) with payload parameters.  For default use, include:
