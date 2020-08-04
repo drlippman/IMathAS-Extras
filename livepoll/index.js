@@ -8,9 +8,9 @@ var crypto = require('crypto');
 var livepollpassword = "testing";
 
 var options = {
-  key: fs.readFileSync(__dirname + '/ssl/privkey.pem'),
-  cert: fs.readFileSync(__dirname + '/ssl/fullchain.pem'),
-  ca: fs.readFileSync(__dirname + '/ssl/chain.pem')
+  key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
+  cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
+  ca: fs.readFileSync(__dirname + '/certs/chain.pem')
 };
 
 var server = https.createServer(options, app);
