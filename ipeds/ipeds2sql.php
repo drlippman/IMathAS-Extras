@@ -130,6 +130,15 @@ function cleanname($str,$agency, $ucwords=true) {
 		if (str_word_count($str) === 1) {
 			$str .= ' SD';
 		}
+	} else {
+		$str = preg_replace_callback('/\b(Hs|Ms|Jhs|Es|H S|Elem|El Sch|Elem Sch|El|Sch)$/', function ($m) {
+			if ($m[0] == 'H S' || $m[0] == 'Hs') { return 'High School';}
+			if ($m[0] == 'Ms') { return 'Middle School';}
+			if ($m[0] == 'Jhs') { return 'Junior High School';}
+			if ($m[0] == 'El' || $m[0] == 'Elem') { return 'Elementary';}
+			if ($m[0] == 'El Sch' || $m[0] == 'Elem Sch' || $m[0] == 'Es') { return 'Elementary School';}
+			if ($m[0] == 'Sch') { return 'School';}
+		}, $str);
 	}
 	return $str;
 }
