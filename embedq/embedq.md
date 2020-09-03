@@ -28,6 +28,7 @@ Setup your iframe with the following query string parameters:
 * `submitall` (optional; default 0): Set to 1 for all parts to get submitted, regardless of whether all parts are answered.
 * `jssubmit` (optional; default 0):  Set to 1 to suppress the built-in "Submit" button.  You will have to trigger the submit via postMessage (see below)
 * `showans` (optional; default 0): Set to 1 if you want to force the answers to show.
+* `seed` (optional; default random): To set a specific seed (1-9999)
 
 ### Submitting
 
@@ -77,6 +78,7 @@ Generate a [JWT](https://jwt.io/) with payload parameters.  For default use, inc
 * `auth` (required):  Your developer authentication key. 
 
 You can optionally alter the behavior using these optional parameters:
+* `seed` (optional; default random): To set a specific seed (1-9999)
 * `jssubmit` (optional; default 1):  Set to 0 if you want MOM to display its own Submit button. If set to 1, IMathAS will not display a Submit button, and you’ll have trigger a submit via javascript (see below)
 * `showscoredonsubmit` (optional; default 0): Set to 1 if you want the question to re-display scored after it’s submitted.
 * `maxtries` (optional; default 0): Set to more than 0 to set the max tries on a question part before it gets disabled, and before a scaffolded question will move on to the next part.
