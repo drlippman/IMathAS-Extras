@@ -261,7 +261,8 @@ $AWSsecret = getenv('AWS_SECRET_KEY');
 ### SES
 
 SES is used for reliably sending emails.  You can operate the site without it,
-but email notifications won't be reliably delivered.
+but email notifications won't be reliably delivered.  
+
 
 #### Verify domains
 
@@ -363,6 +364,25 @@ In Cloudwatch:
 - Under Add Target, select SNS Topic and select the one you set up earlier for tagcoursecleanup
 - Create another rule, with schedule:  `0/10 07-12 * * ? *`
 - Under Add Target, select SNS Topic and select the one you set up earlier for runcoursecleanup
+
+#### SES bounce
+
+This handles email bounces and complaints.
+
+In Simple Notification Service:
+- Create a topic for ses-bounce
+- Under Delivery retry policies, uncheck "Use the default delivery retry policy"
+  and set the number of retries to 0.
+- Select the topic, and under Actions select Subscribe to Topic
+- For protocol choose `HTTPS`
+- For endpoint use: `https://yoursite.com/admin/handleSESbounce.php?authcode=###`, 
+  where ### is the authcode you put in config.php as `$CFG['email']['authcode']`
+- From the Subscriptions page, select the subscription and select 
+  "Edit Subscription Delivery Policy" from the Actions pulldown.  Set Number of Retries to 0.
+
+In SES:
+- Click on your domain, and open up the Notifications grouping, and click Edit Configuration
+- For bounces and complaints, select the ses-bounce SNS topic you created earlier
 
 
 #### dbbackup
