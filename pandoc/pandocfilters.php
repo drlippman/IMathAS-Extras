@@ -87,8 +87,11 @@ class Pandoc_Filter
         } else {
             $format = '';
         }
-        $altered = self::walk($doc, $action, $format, $doc[0]->unMeta);
-        $json = json_encode($altered, JSON_HEX_TAG|JSON_HEX_AMP|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+        // $altered = self::walk($doc, $action, $format, $doc[0]->unMeta);
+        // $json = json_encode($altered, JSON_HEX_TAG|JSON_HEX_AMP|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+        
+        $doc->blocks = self::walk($doc->blocks, $action, $format, $doc->meta);
+        $json = json_encode($doc, JSON_PRETTY_PRINT);
         
         echo $json . PHP_EOL;
     }
