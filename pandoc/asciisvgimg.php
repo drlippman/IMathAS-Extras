@@ -293,7 +293,7 @@ function addcolor($origcolor) {
 	} else {
 		$alpha = 0;
 	}
-	if ($color{0}=='#') {
+	if ($color[0]=='#') {
 		$r = hexdec(substr($color,1,2));
 		$g = hexdec(substr($color,3,2));
 		$b = hexdec(substr($color,5,2));
@@ -508,7 +508,7 @@ function ASinitPicture($arg=array()) {
 	}
 	if (!is_array($this->border)) {
 		$this->border = array($this->border,$this->border,$this->border,$this->border);
-	} else if (count($this->border<4)) {
+	} else if (count($this->border)<4) {
 		for ($i=count($this->border);$i<5;$i++) {
 			if ($i==1) {
 				$this->border[$i] = $this->border[0];
@@ -518,15 +518,27 @@ function ASinitPicture($arg=array()) {
 		}
 	}
 	$this->xunitlength = ($this->width - $this->border[0] - $this->border[2])/($this->xmax - $this->xmin);
-	$this->yunitlength = ($this->height - $this->border[1] - $this->border[3])/($this->ymax - $this->ymin);
 	if ($this->xunitlength<=0) {
 		$this->xunitlength = 1;
 	}
-	if ($this->yunitlength<=0) {
-		$this->yunitlength = 1;
+	$this->yunitlength = $this->xunitlength;
+	if (!isset($arg[2])) { // no ymin
+		$this->origin[0] = -$this->xmin*$this->xunitlength + $this->border[0];
+		$this->origin[1] = $this->height / 2;
+		$this->ymin = -($this->height - $this->border[1] - $this->border[3])/(2*$this->yunitlength);
+		$this->ymax = -$this->ymin;
+	} else {
+		if (isset($arg[3])) {  // do have ymax too
+			$this->yunitlength = ($this->height - $this->border[1] - $this->border[3])/($this->ymax - $this->ymin);
+			if ($this->yunitlength<=0) {
+				$this->yunitlength = 1;
+			}
+		} else {
+			$this->ymax = ($this->height - $this->border[1] - $this->border[3])/($this->yunitlength) + $this->ymin;
+		}
+		$this->origin[0] = -$this->xmin*$this->xunitlength + $this->border[0];
+		$this->origin[1] = -$this->ymin*$this->yunitlength + $this->border[1];
 	}
-	$this->origin[0] = -$this->xmin*$this->xunitlength + $this->border[0];
-	$this->origin[1] = -$this->ymin*$this->yunitlength + $this->border[1];
 
 	$this->winxmin = max($this->border[0] - 5,0);
 	$this->winxmax = min($this->width - $this->border[2] + 5, $this->width);
@@ -542,13 +554,13 @@ function ASaxes($arg) {
 	$fqonlyx = false; $fqonlyy = false;
 	$dox = true;
 	$doy = true;
-	if (is_numeric($arg[0])) {
+	if (!is_bool($arg[0])) {
 		$xscl = $this->evalifneeded($arg[0]);
 	} else {
 		$dolabels = true;
 	}
 	if (count($arg)>1) {
-		if (is_numeric($arg[1])) {
+		if (!is_bool($arg[1])) {
 			$yscl = $this->evalifneeded($arg[1]);
 		} else {
 			$dogrid = true;
@@ -829,9 +841,9 @@ function ASpath($arg) {
 		$pt = array();
 		for ($i=0;$i<count($arg);$i++) {
 			if ($i%2==0) { //x coord
-				$pt[$i] = $arg[$i]*$this->xunitlength + $this->origin[0];
+				$pt[$i] = $this->evalifneeded($arg[$i])*$this->xunitlength + $this->origin[0];
 			} else {
-				$pt[$i] = $this->height - $arg[$i]*$this->yunitlength - $this->origin[1];
+				$pt[$i] = $this->height - $this->evalifneeded($arg[$i])*$this->yunitlength - $this->origin[1];
 			}
 		}
 		$color = $this->fill;
@@ -1044,13 +1056,13 @@ function ASslopefield($arg) {
 	if (!$this->isinit) {$this->ASinitPicture();}
 	$func = $arg[0];
 	if (count($arg)>1) {
-		$dx = $arg[1];
+		$dx = $this->evalifneeded($arg[1]);
 		if ($dx*1==0) { $dx = 1;}
 	} else {
 		$dx = 1;
 	}
 	if (count($arg)>2) {
-		$dy = $arg[2];
+		$dy = $this->evalifneeded($arg[2]);
 		if ($dy*1==0) { $dy = 1;}
 	} else {
 		$dy = 1;
@@ -1065,8 +1077,8 @@ function ASslopefield($arg) {
 	$func = str_replace(array('(x)','(y)'),array('($x)','($y)'),$func);
 	$efunc = my_create_function('$x,$y','return ('.$func.');');
 	$dz = sqrt($dx*$dx + $dy*$dy)/6;
-	$x_min = ceil($this->xmin/$dx);
-	$y_min = ceil($this->ymin/$dy);
+	$x_min = $dx*ceil($this->xmin/$dx);
+	$y_min = $dy*ceil($this->ymin/$dy);
 	for ($x = $x_min; $x<= $this->xmax; $x+= $dx) {
 		for ($y = $y_min; $y<= $this->ymax; $y+= $dy) {
 			$gxy = @$efunc($x,$y);
@@ -1243,12 +1255,12 @@ function pt2arr($pt) {
 function parseargs($str) {
 	$lp = 0; $qd = 0; $bd=0; $args = array();
 	for($i=0; $i<strlen($str); $i++) {
-		if ($str{$i}=='[' && $qd==0) { $bd++;}
-		if ($str{$i}==']' && $qd==0) { $bd--;}
-		if ($str{$i}=='"' || $str{$i}=='\'') {
+		if ($str[$i]=='[' && $qd==0) { $bd++;}
+		if ($str[$i]==']' && $qd==0) { $bd--;}
+		if ($str[$i]=='"' || $str[$i]=='\'') {
 			$qd = 1-$qd;
 		}
-		if ($str{$i}==',' && $qd==0 && $bd==0) {
+		if ($str[$i]==',' && $qd==0 && $bd==0) {
 			if ($i>$lp) {
 				$args[] = substr($str,$lp,$i-$lp);
 			} else {
@@ -1259,7 +1271,7 @@ function parseargs($str) {
 	}
 	$args[] = substr($str,$lp);
 	for ($i=0;$i<count($args);$i++) {
-		$args[$i] = str_replace(array('"','\''),'',$args[$i]);
+		$args[$i] = trim(str_replace(array('"','\''),'',$args[$i]));
 	}
 	return $args;
 }
