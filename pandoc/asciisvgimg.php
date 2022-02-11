@@ -328,8 +328,12 @@ function ASsetdash() {
 			}
 			$doagain--;
 		}
-		imagesetstyle($this->img,$style);
-		$this->isdashed = true;
+		if (!empty($style)) {
+            imagesetstyle($this->img,$style);
+            $this->isdashed = true;
+        } else {
+            $this->isdashed = false;
+        }
 	}
 }
 function AStext($arg) {
