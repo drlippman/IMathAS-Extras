@@ -1,0 +1,34 @@
+Create server
+Update server
+  apt update
+Install apache
+  apt-get install apache2
+Install php
+  apt-get install php libapache2-mod-php
+  
+Install pandoc
+  Visit pandoc github, find latest .deb
+  wget onto server
+  dpkg -i file.deb
+Install pandoc stuff from imathas-extras
+  copy into /var/www/html
+  create imgs subdir, set permissions to allow writing
+  create /var/www/datatmp/ directory, set permissios to allow writing
+Install certbot
+  https://certbot.eff.org/instructions?ws=apache&os=ubuntufocal
+  certs are installed in /etc/letsencrypt/live/domain.name/
+
+Install livepoll
+  Install node
+  Make livepoll directory, certs subdirectory
+  wget index.js and package.json. npm install
+Setup certs
+  Go to /etc/letsencrypt/live/domain.name/ and copy certs to directory
+     chmod a+r them
+  go into /etc/letsencrypt/renewal-hooks/deploy and wget in livepoll.sh
+  chmod a+x livepoll.sh
+Restart service
+  Copy livepoll.service to /lib/systemd/system/, editing the ExecStart path as needed.
+  Start the server using sudo systemctl start livepoll
+
+

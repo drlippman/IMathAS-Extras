@@ -15,8 +15,10 @@ var options = {
 
 var server = https.createServer(options, app);
 server.listen(3000);
-var socketio = require('socket.io');
-var io = socketio.listen(server);
+//var socketio = require('socket.io');
+//var io = socketio.listen(server);
+var { Server } = require('socket.io');
+var io = new Server(server, { cors: {origin: "*"}});
 
 app.get('/ping', function(req,res) {
   res.send('pong');
@@ -103,16 +105,16 @@ io.on('connection', function(socket){
 });
 
 function updateUserCount(aid) {
-  var sturoom = io.sockets.adapter.rooms[aid+"-students"];
+  var sturoom = io.sockets.adapter.rooms.get(aid+"-students");
   if (sturoom) {
-    var usrcnt = sturoom.length;
+    var usrcnt = sturoom.size;
   } else {
     var usrcnt = 0;
   }
 
-  var teachroom = io.sockets.adapter.rooms[aid+"-teachers"];
+  var teachroom = io.sockets.adapter.rooms.get(aid+"-teachers");
   if (teachroom) {
-    var teachcnt = teachroom.length;
+    var teachcnt = teachroom.size;
   } else {
     var teachcnt = 0;
   }
