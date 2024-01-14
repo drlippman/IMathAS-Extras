@@ -30,6 +30,7 @@ Setup certs
   chmod a+x livepoll.sh
 Restart service
   Copy livepoll.service to /lib/systemd/system/, editing the ExecStart path as needed.
-  Start the server using sudo systemctl start livepoll
+  Start the server using: sudo systemctl start livepoll
+  To make sure it autoruns on reboot, run: sudo systemctl enable livepoll
 
 
