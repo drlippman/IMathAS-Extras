@@ -84,6 +84,9 @@ You can optionally alter the behavior using these optional parameters:
 * `maxtries` (optional; default 0): Set to more than 0 to set the max tries on a question part before it gets disabled, and before a scaffolded question will move on to the next part.
 * `showansafter` (optional: default 0, or maxtries if set): Set to have the answer show after this many tries.  Set to 0 to have answers never show.
 * `showans` (optional; default 0): Set to 1 to force answers to show.
+* `includeans` (optional; default 0): Set to 1 to include the answer and detailed soln (if used) in
+  the returned JSON. Note that this will include the answers regardless of the showans option or showansafter status,
+  so use with caution to avoid revealing the answers in the transmission.
 * `showhints` (optional; default 3): Set to 0 to suppress help features, like hints and video buttons.
 * `allowregen` (optional; default 0): When jssubmit is 0 and showscoredonsubmit is 1, setting this to 1 will show a "Try another version" button after submitting.  Generally in scored mode the embedding site would handle generating new versions instead.
 * `submitall` (optional; default 1): Set to 1 for all parts to get submitted, regardless of whether all parts are answered.  Note that scaffolded questions will never be able to be submitted all at once.
