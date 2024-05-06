@@ -17,6 +17,7 @@ Install pandoc stuff from imathas-extras
 Install certbot
   https://certbot.eff.org/instructions?ws=apache&os=ubuntufocal
   certs are installed in /etc/letsencrypt/live/domain.name/
+Install cleanup-old-files in /etc/cron.daily/ 
 
 Install livepoll
   Install node
@@ -29,6 +30,7 @@ Setup certs
   chmod a+x livepoll.sh
 Restart service
   Copy livepoll.service to /lib/systemd/system/, editing the ExecStart path as needed.
-  Start the server using sudo systemctl start livepoll
+  Start the server using: sudo systemctl start livepoll
+  To make sure it autoruns on reboot, run: sudo systemctl enable livepoll
 
 
