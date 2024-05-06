@@ -11,14 +11,18 @@ if (empty($_POST['html'])) {
 
 function filtergraph($str) {
 	if (strpos($str,'embed')!==FALSE) {
-		$str = preg_replace_callback('/<\s*embed.*?sscr=(.)(.+?)\1.*?>/','svgfiltersscrcallback',$str);
-		$str = preg_replace_callback('/<\s*embed.*?script=(.)(.+?)\1.*?>/','svgfilterscriptcallback',$str);
+		$str = preg_replace_callback('/<\s*embed.*?sscr=(.)(.+?)\1(.*?)>/','svgfiltersscrcallback',$str);
+		$str = preg_replace_callback('/<\s*embed.*?script=(.)(.+?)\1(.*?)>/','svgfilterscriptcallback',$str);
 	}
 	return $str;
 }
 function svgfiltersscrcallback($arr) {
 	global $imgcnt, $shortname, $AS;
 	if (trim($arr[2])=='') {return $arr[0];}
+	$alt = 'Graphs';
+	if (preg_match('/alt="(.*?)"/', $arr[3], $m)) {
+		$alt = $m[1];
+	}
 	if (strpos($arr[0],'style')!==FALSE) {
 		$sty = preg_replace('/.*style\s*=\s*(.)(.+?)\1.*/',"$2",$arr[0]);
 	} else {
@@ -31,12 +35,15 @@ function svgfiltersscrcallback($arr) {
 	$imgcnt++;
 	$AS->outputimage('./imgs/'.$imgname.'.png');
 	
-	return ('<img src="imgs/'.$imgname.'.png" style="'.$sty.'" alt="Graphs"/>');
+	return ('<img src="imgs/'.$imgname.'.png" style="'.$sty.'" alt="'.$alt.'"/>');
 }
 function svgfilterscriptcallback($arr) {
 	global $imgcnt,$shortname, $AS;
 	if (trim($arr[2])=='') {return $arr[0];}
-	
+	$alt = 'Graphs';
+	if (preg_match('/alt="(.*?)"/', $arr[3], $m)) {
+		$alt = $m[1];
+	}
 	$w = preg_replace('/.*\bwidth\s*=\s*.?(\d+).*/',"$1",$arr[0]);
 	$h = preg_replace('/.*\bheight\s*=\s*.?(\d+).*/',"$1",$arr[0]);
 	
@@ -60,7 +67,7 @@ function svgfilterscriptcallback($arr) {
 	$imgcnt++;
 	$AS->outputimage('./imgs/'.$imgname.'.png');
 	
-	return ('<img src="imgs/'.$imgname.'.png" style="'.$sty.'" alt="Graphs"/>');
+	return ('<img src="imgs/'.$imgname.'.png" style="'.$sty.'" alt="'.$alt.'"/>');
 }
 
 
