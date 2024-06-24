@@ -60,6 +60,7 @@ services:
     tty: false
 
     environment:
+      LIVEPOLL_PASSWORD: testing
       LIVEPOLL_USE_INSECURE_HTTP: true
 
 volumes:
