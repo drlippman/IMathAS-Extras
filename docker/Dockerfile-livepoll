@@ -1,0 +1,10 @@
+FROM node:22
+
+WORKDIR /app
+
+COPY livepoll/* /app/
+
+RUN npm install
+
+CMD ["node", "/app/index.js"]
+

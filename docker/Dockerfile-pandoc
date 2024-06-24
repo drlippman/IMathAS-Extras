@@ -1,0 +1,19 @@
+FROM php:8.2-apache
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+		pandoc \
+	&& apt-get clean
+
+COPY pandoc/* /var/www/html/
+COPY pandoc/cleanup-old-files /etc/cron.daily
+
+RUN chmod 755 /etc/cron.daily/cleanup-old-files
+
+RUN mkdir \
+		/var/www/datatmp \
+		/var/www/html/imgs \
+	&& chown www-data:www-data \
+		/var/www/datatmp \
+		/var/www/html/imgs
+
