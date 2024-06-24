@@ -1,22 +1,11 @@
 var app = require('express')();
-//var http = require('http').Server(app);
-//var io = require('socket.io')(http);
-var https = require('https');
-var fs = require('fs');
 var crypto = require('crypto');
 
-var livepollpassword = "testing";
+var livepollpassword = process.env.LIVEPOLL_PASSWORD ?? 'testing';
+var useInsecureHttp = 'true' === process.env?.LIVEPOLL_USE_INSECURE_HTTP;
 
-var options = {
-  key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
-  cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
-  ca: fs.readFileSync(__dirname + '/certs/chain.pem')
-};
-
-var server = https.createServer(options, app);
+var server = getServer(app, useInsecureHttp);
 server.listen(3000);
-//var socketio = require('socket.io');
-//var io = socketio.listen(server);
 var { Server } = require('socket.io');
 var io = new Server(server, { cors: {origin: "*"}});
 
@@ -104,6 +93,28 @@ io.on('connection', function(socket){
 
 });
 
+function getServer(app, useInsecureHttp) {
+  return useInsecureHttp ? _getInsecureServer(app) : _getSecureServer(app);
+}
+
+function _getInsecureServer(app) {
+  var https = require('http');
+  var server = https.createServer(app);
+  return server;
+}
+
+function _getSecureServer(app) {
+  var https = require('https');
+  var fs = require('fs');
+  var options = {
+    key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
+    cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
+    ca: fs.readFileSync(__dirname + '/certs/chain.pem')
+  };
+  var server = https.createServer(options, app);
+  return server;
+}
+
 function updateUserCount(aid) {
   var sturoom = io.sockets.adapter.rooms.get(aid+"-students");
   if (sturoom) {
@@ -127,7 +138,3 @@ function sha1(data) {
 	generator.update(data);
 	return generator.digest('base64');
 }
-
-//http.listen(3000, function(){
-//  console.log('listening on *:3000');
-//});
