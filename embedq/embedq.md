@@ -23,6 +23,8 @@ Setup your iframe with the following query string parameters:
 * `showscoredonsubmit` (optional; default 1): Set to 0 if you don’t want the question to re-display scored after it’s submitted.
 * `maxtries` (optional; default 0): Set to more than 0 to set the max tries on a question part before it gets disabled, and before a scaffolded question will move on to the next part.
 * `showansafter` (optional: default 1, or maxtries if set): Set to have the answer show after this many tries.  Set to 0 to have answers never show.
+* `hidescoreval` (optional: default 0): Set to 1 to hide the 
+ "score: #" that displays after submitting a question.
 * `showhints` (optional; default 3): Set to 0 to suppress help features, like hints and video buttons.
 * `allowregen` (optional; default 1): When jssubmit is 0 and showscoredonsubmit is 1, setting this to 1 will show a "Try another version" button after submitting
 * `submitall` (optional; default 0): Set to 1 for all parts to get submitted, regardless of whether all parts are answered.
