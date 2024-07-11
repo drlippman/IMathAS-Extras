@@ -40,6 +40,9 @@ of autostart config.
 Once set up, put `$CFG['GEN']['livepollserver'] = 'your.server.com'` and
 `$CFG['GEN']['livepollpassword'] = 'yourpassword'` in your IMathAS config.php.
 
+Note that the livepoll server runs on port 3000, so make sure your server is
+set to allow connections on port 3000.
+
 ## mmltex
 This script will attempt to convert all the `<math>` tags in an HTML document
 to Wordpress-style latex tags using an xsl transform
