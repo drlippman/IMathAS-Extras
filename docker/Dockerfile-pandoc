@@ -1,0 +1,16 @@
+FROM php:8.2-apache
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+		pandoc \
+	&& apt-get clean
+
+COPY pandoc/* /var/www/html/
+
+RUN mkdir \
+		/var/www/datatmp \
+		/var/www/html/imgs \
+	&& chown www-data:www-data \
+		/var/www/datatmp \
+		/var/www/html/imgs
+
