@@ -1,0 +1,143 @@
+name: shared-deployment-workflow
+permissions:
+  id-token: write   # Used for AWS OIDC auth
+  contents: read    # This is required for actions/checkout
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment name passed from the caller workflow'
+        required: true
+        type: string
+      project:
+        description: 'Project name passed from the caller workflow'
+        required: true
+        type: string
+    secrets:
+      aws_user_account:
+        description: 'AWS Account ID for IAM users'
+        required: true
+      aws_ci_account:
+        description: 'AWS Account ID for IAM users'
+        required: true
+
+jobs:
+  # this job gets a password for public ECR to use in future steps
+  ecr-public-auth:
+    runs-on: ubuntu-latest
+    name: Login to Public ECR
+    timeout-minutes: 5
+    permissions:
+      id-token: write   # Used for AWS OIDC auth
+    outputs:
+      ECR_PASSWORD: ${{ steps.ecr-auth.outputs.ECR_PASSWORD }}
+    steps:
+      # This is required to role chain from the OIDC role to other cross-account roles
+      # https://github.com/aws-actions/configure-aws-credentials/issues/279
+      - name: OIDC Auth
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          role-to-assume: arn:aws:iam::${{ secrets.aws_user_account }}:role/ci-oidc-role
+          role-session-name: github-actions
+          role-duration-seconds: 900
+
+      - name: Assume role in CI Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          aws-region: us-west-2
+          role-to-assume: arn:aws:iam::${{ secrets.aws_ci_account }}:role/ci-role
+          role-session-name: github-actions
+          role-duration-seconds: 1200
+      
+      - name: Set Public ECR Auth
+        id: ecr-auth
+        run: echo "ECR_PASSWORD=$(aws ecr-public --region us-east-1 get-login-password)" >> $GITHUB_OUTPUT
+  
+  terraform-deploy:
+    name: Terraform Deployment
+    uses: ./.github/workflows/terraform-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      project: ${{ inputs.project }}
+    secrets:
+      aws_user_account: ${{ secrets.AWS_USER_ACCOUNT }}
+      aws_ci_account: ${{ secrets.AWS_CI_ACCOUNT }}
+  
+  ecs-deploy:
+    name: ECS Deployment
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    needs: [ecr-public-auth,terraform-deploy]
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout project
+    
+    - uses: ./.github/actions/private-ecr-login
+      name: Login to Private ECR
+      id: login-ecr
+    
+    - name: Login to Public ECR
+      uses: docker/login-action@v3
+      with:
+        registry: public.ecr.aws/o9c0t3w1
+        username: AWS
+        password: ${{ needs.ecr-public-auth.outputs.ECR_PASSWORD }}
+
+
+    - id: read_env_json
+      name: Read Environment JSON
+      run: |
+        env_json=$(jq -c '.environments[] | select(.environment_label=="${{ inputs.environment }}")' ./deploy/${{ inputs.project }}-environments.json)
+        echo "env_json=$env_json" >> $GITHUB_OUTPUT
+    - id: set_env_metadata
+      name: Set Environment Metadata
+      run: |
+        echo "account=${{ fromJSON(steps.read_env_json.outputs.env_json).account }}" >> $GITHUB_OUTPUT
+        echo "ssm_prefix=${{ fromJSON(steps.read_env_json.outputs.env_json).ssm_prefix }}" >> $GITHUB_OUTPUT
+        echo "webapp_ssm_prefix=${{ fromJSON(steps.read_env_json.outputs.env_json).webapp.ssm_prefix }}" >> $GITHUB_OUTPUT
+        echo "shoryuken_ssm_prefix=${{ fromJSON(steps.read_env_json.outputs.env_json).shoryuken.ssm_prefix }}" >> $GITHUB_OUTPUT
+        echo "cluster_name=${{ fromJSON(steps.read_env_json.outputs.env_json).fargate.cluster_name }}" >> $GITHUB_OUTPUT
+    
+    - name: OIDC Auth to AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::${{ secrets.aws_user_account }}:role/ci-oidc-role
+        role-session-name: github-actions
+        role-duration-seconds: 900
+
+    - name: Assume role in target account
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::${{ steps.set_env_metadata.outputs.account }}:role/ci-role
+        role-session-name: github-actions
+        role-duration-seconds: 1200
+        
+    - id: read_tree_hash
+      name: Read git tree hash
+      run: |
+        tree_hash=$(git rev-parse HEAD:)
+        echo "tree_hash=$tree_hash" >> $GITHUB_OUTPUT
+  
+    - name: Verify image
+      run: |
+        if ! docker manifest inspect ${{ steps.login-ecr.outputs.registry }}/${{ inputs.project }}:gha-tree-${{ steps.read_tree_hash.outputs.tree_hash }}; then
+          echo "If this is a PR build, you may need to pull in changes from the target branch into your PR branch."
+          exit 1
+        fi
+  
+    - name: Run deploy script
+      run: |
+        deploy/ecs_deploy.sh \
+          --cluster-name ${{ steps.set_env_metadata.outputs.cluster_name }} \
+          --ssm-prefix ${{ steps.set_env_metadata.outputs.ssm_prefix }} \
+          --account-number ${{ secrets.aws_ci_account }} \
+          --project-name ${{ inputs.project }}
