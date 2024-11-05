@@ -1,0 +1,16 @@
+name: tag-deploy
+on:
+  push:
+    tags:
+    - release/pandoc/*
+
+jobs:
+  ecs-deploy:
+    name: ECS Deployment
+    uses: ./.github/workflows/shared-deploy.yml
+    with:
+      environment: prod
+      project: pandoc
+    secrets:
+      aws_user_account: ${{ secrets.AWS_USER_ACCOUNT }}
+      aws_ci_account: ${{ secrets.AWS_CI_ACCOUNT }}

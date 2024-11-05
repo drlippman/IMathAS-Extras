@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   pandoc:
@@ -16,25 +14,6 @@ services:
       - pandoc-temp-imgs:/var/www/html/imgs
 
     hostname: pandoc
-    domainname: example.com
-
-    restart: unless-stopped
-    privileged: true
-    stdin_open: false
-    tty: false
-
-  # The pandoc container does not run cron, so run cron
-  # in its own container with a shared volume.
-  pandoc-cron:
-    build:
-      context: ./
-      dockerfile: docker/Dockerfile-pandoc-cron
-
-    volumes:
-      - pandoc-temp-datatmp:/var/www/datatmp
-      - pandoc-temp-imgs:/var/www/html/imgs
-
-    hostname: pandoc-cron
     domainname: example.com
 
     restart: unless-stopped

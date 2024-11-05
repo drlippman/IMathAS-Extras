@@ -1,5 +1,0 @@
-#!/bin/sh
-
-find /var/www/datatmp/* -mtime +1 -exec rm {} \;
-
-find /var/www/html/imgs/* -mtime +1 -exec rm {} \;

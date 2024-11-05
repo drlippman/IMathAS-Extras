@@ -1,11 +1,13 @@
-FROM php:8.2-apache
+FROM php:8.3-apache
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends --no-install-suggests \
 		pandoc \
+		jq \
+		awscli \
 	&& apt-get clean
 
-COPY pandoc/* /var/www/html/
+COPY --chown=www-data:www-data pandoc/* /var/www/html/
 
 RUN mkdir \
 		/var/www/datatmp \
@@ -14,3 +16,5 @@ RUN mkdir \
 		/var/www/datatmp \
 		/var/www/html/imgs
 
+# enable php production defaults
+RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
