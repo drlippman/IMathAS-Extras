@@ -1,0 +1,43 @@
+{
+    "environments": [
+        {
+            "environment_label": "dev",
+            "account": 725843923591,
+            "region": "us-west-2",
+            "terraform_state_key": "accounts/lumen-stage/us-west-2/dev/livepoll-app/config/terraform.tfstate",
+            "ssm_prefix": "/lumen-services/us-west-2/dev/livepoll",
+            "fargate": {
+                "cluster_name": "dev-livepoll"
+            },
+            "webapp": {
+                "ssm_prefix": "/lumen-services/us-west-2/dev/livepoll/webapp"
+            }
+        },
+        {
+            "environment_label": "staging",
+            "account": 725843923591,
+            "region": "us-west-2",
+            "terraform_state_key": "accounts/lumen-stage/us-west-2/staging/livepoll-app/config/terraform.tfstate",
+            "ssm_prefix": "/lumen-services/us-west-2/staging/livepoll",
+            "fargate": {
+                "cluster_name": "staging-livepoll"
+            },
+            "webapp": {
+                "ssm_prefix": "/lumen-services/us-west-2/staging/livepoll/webapp"
+            }
+        },
+        {
+            "environment_label": "prod",
+            "account": 523740042085,
+            "region": "us-west-2",
+            "terraform_state_key": "accounts/lumen-prod/us-west-2/prod/livepoll-app/config/terraform.tfstate",
+            "ssm_prefix": "/lumen-services/us-west-2/prod/livepoll",
+            "fargate": {
+                "cluster_name": "prod-livepoll"
+            },
+            "webapp": {
+                "ssm_prefix": "/lumen-services/us-west-2/prod/livepoll/webapp"
+            }
+        }
+    ]
+}
