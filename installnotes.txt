@@ -5,6 +5,8 @@ Install apache
   apt-get install apache2
 Install php
   apt-get install php libapache2-mod-php
+Install gd for php
+  apt-get install php8.3-gd
   
 Install pandoc
   Visit pandoc github, find latest .deb
@@ -17,7 +19,11 @@ Install pandoc stuff from imathas-extras
 Install certbot
   https://certbot.eff.org/instructions?ws=apache&os=ubuntufocal
   certs are installed in /etc/letsencrypt/live/domain.name/
-Install cleanup-old-files in /etc/cron.daily/ 
+Install cleanup-old-files in /etc/cron.daily/:
+  #!/bin/sh
+  find /var/www/datatmp/* -mtime +1 -exec rm {} \;
+  find /var/www/html/imgs/* -mtime +1 -exec rm {} \;
+
 
 Install livepoll
   Install node
