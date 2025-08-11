@@ -22,7 +22,8 @@ app.get('/qscored', function(req, res){
   var la = req.query.la.toString();
   var sig = req.query.sig;
   
-  if (sha1(aid+qn+userid+score+la+livepollpassword+now)!=sig) {
+  var tocheck = aid+qn+userid+score+la+livepollpassword+now;
+  if (sha1(tocheck)!=sig && sha256(tocheck)!=sig) {
 	  res.send('signature error');
   	  console.log("signature error on qscored");
   	  return;
@@ -41,8 +42,8 @@ app.get('/startq', function(req, res) {
   var sig = req.query.sig;
 
   var tocheck = aid+qn+seed+livepollpassword+now;
-  if (sha1(tocheck)!=sig) {
-	  res.send('signature error:' + tocheck+":"+sha1(tocheck)+":"+sig);
+  if (sha1(tocheck)!=sig && sha256(tocheck)!=sig) {
+	  res.send('signature error');
   	  console.log("signature error on startq");
   	  return;
   }
@@ -59,7 +60,8 @@ app.get('/stopq', function(req, res) {
   var now = req.query.now.toString();
   var sig = req.query.sig;
 
-  if (sha1(aid+qn+newstate+livepollpassword+now)!=sig) {
+  var tocheck = aid+qn+newstate+livepollpassword+now;
+  if (sha1(tocheck)!=sig && sha256(tocheck)!=sig) {
 	  res.send('signature failure');
   	  console.log("signature error on stopq");
   	  return;
@@ -75,7 +77,8 @@ io.on('connection', function(socket){
   var now = socket.handshake.query.now.toString();
   var sig = socket.handshake.query.sig;
 
-  if (sha1(room+livepollpassword+now)!=sig) {
+  var tocheck = room+livepollpassword+now;
+  if (sha1(tocheck)!=sig && sha256(tocheck)!=sig) {
   	  console.log("signature error on connect");
   	  return;
   }
@@ -135,6 +138,11 @@ function updateUserCount(aid) {
 
 function sha1(data) {
 	var generator = crypto.createHash('sha1');
+	generator.update(data);
+	return generator.digest('base64');
+}
+function sha256(data) {
+	var generator = crypto.createHash('sha256');
 	generator.update(data);
 	return generator.digest('base64');
 }
