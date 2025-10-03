@@ -86,16 +86,17 @@ Blacklists an out-of-date certificate
 
 #### cgi.config
 
-Loads cgi modules, used for mimetex
+Loads cgi modules, used for mimetex.  This one may not be needed anymore.
 
 #### custom_log.config
 
 Adjusts the log format to include the user's IP rather than just the load
-balancer's.
+balancer's.  The one may not work; a postdeploy hook might be needed, or might
+need to write to a different .conf file.
 
 #### deflate.config
 
-Turns on gzip for a bunch of mime types
+Turns on gzip for a bunch of mime types.  This one may not be needed anymore.
 
 #### mimetex.config
 
@@ -106,6 +107,10 @@ Pulls a compiled mimetex binary from S3.  The config.php then uses
 
 Installs freetype-devel.  Not sure if this is really necessary, but may be
 for image-based graph generation with text.
+
+### phperrors.config
+
+Fixes the PHP error log location for Cloudwatch streaming
 
 #### phpini.config
 
