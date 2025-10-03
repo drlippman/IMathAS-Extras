@@ -76,6 +76,12 @@ during the install.  Make sure no sensitive information is in these files; the
 In a `.ebextensions` directory of your repo, copy in these files, if desired,
 and commit.
 
+#### 01-logformat.sh
+
+This atually should go in `.platform/hooks/postdeploy/` rather than `.ebextensions`.  
+This changes the log format to include `X-Forwarded-For` so you can see the actual
+user IP rather than just the ALB IP.  This replaces `custom_log.config`
+
 #### 01run.config
 
 runs security updates
@@ -91,8 +97,7 @@ Loads cgi modules, used for mimetex.  This one may not be needed anymore.
 #### custom_log.config
 
 Adjusts the log format to include the user's IP rather than just the load
-balancer's.  The one may not work; a postdeploy hook might be needed, or might
-need to write to a different .conf file.
+balancer's.  This doesn't work right; use the 01-logformat.sh instead.
 
 #### deflate.config
 
