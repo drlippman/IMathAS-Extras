@@ -78,7 +78,7 @@ and commit.
 
 #### 01-logformat.sh
 
-This atually should go in `.platform/hooks/postdeploy/` rather than `.ebextensions`.  
+This should go in `.platform/hooks/postdeploy/` rather than `.ebextensions`.  
 This changes the log format to include `X-Forwarded-For` so you can see the actual
 user IP rather than just the ALB IP.  This replaces `custom_log.config`
 
@@ -90,18 +90,18 @@ runs security updates
 
 Blacklists an out-of-date certificate
 
-#### cgi.config
+#### cgibin.conf
 
-Loads cgi modules, used for mimetex.  This one may not be needed anymore.
+Loads cgi modules, used for mimetex.  This goes in `.platform/hooks/postdeploy/` not `.ebextensions`.
 
-#### custom_log.config
+#### custom_log.old
 
-Adjusts the log format to include the user's IP rather than just the load
+Adjusted the log format to include the user's IP rather than just the load
 balancer's.  This doesn't work right; use the 01-logformat.sh instead.
 
-#### deflate.config
+#### deflate.conf
 
-Turns on gzip for a bunch of mime types.  This one may not be needed anymore.
+Turns on gzip for a bunch of mime types.  This goes in `.platform/hooks/postdeploy/` not `.ebextensions`.
 
 #### mimetex.config
 
