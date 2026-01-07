@@ -43,6 +43,29 @@ Once set up, put `$CFG['GEN']['livepollserver'] = 'your.server.com'` and
 Note that the livepoll server runs on port 3000, so make sure your server is
 set to allow connections on port 3000.
 
+## mathsvg server
+This sets up a node server that can render tex to svg images.  This can be used
+as an endpoint for $mathimgurl instead of a mimetex server.
+
+* Create a directory and copy into it index.js and package.json
+* Go into the directory and run `npm install`
+* If it's on the same server as a livepoll server, can probably reference the 
+  existing certs directory from that. Otherwise, create a `certs` subdirectory
+
+The code is set up to run on SSL, so you'll need to put your SSL keys in the
+directory indicated in the code.  If you already have certs being copied for
+livepoll, it'll be easiest to just put the right path for those. Otherwise, you can
+follow the approach for livepoll to copy certs.
+
+To keep the server running in the background, you'll need to set up some kind
+of autostart config.  
+* Copy `mathsvg.service` to `/lib/systemd/system/`, editing the `ExecStart` 
+  path as needed.
+* Start the server using `sudo systemctl start mathsvg`
+
+Note that the mathsvg server runs on port 3001, so make sure your server is
+set to allow connections on port 3001.
+
 ## mmltex
 This script will attempt to convert all the `<math>` tags in an HTML document
 to Wordpress-style latex tags using an xsl transform
