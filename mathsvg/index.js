@@ -101,6 +101,8 @@ app.get('/math', async (req, res) => {
     try {
       const cachedSvg = await fsp.readFile(cachePath, 'utf8');
       res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+      res.setHeader('ETag', cacheKey); // Use hash as ETag
       return res.send(cachedSvg);
     } catch (err) {
       // Cache miss, continue to render
@@ -114,6 +116,8 @@ app.get('/math', async (req, res) => {
     fsp.writeFile(cachePath, svgOutput).catch(console.error);
 
     res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+    res.setHeader('ETag', cacheKey); // Use hash as ETag
     res.send(svgOutput);
   } catch (error) {
     res.status(500).send('Error rendering math: ' + error.message);
