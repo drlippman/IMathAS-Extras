@@ -5,16 +5,18 @@
 This allows embedding practice problems in any website, without any authorization requirements.  No scores are passed back.
 
 ### Setup
-Create an iframe, styled like this:
+Create an iframe. If using the premade resize listener, or for simple cases, style like:
+```
+<iframe id="embed1" style="width:100%" frameborder=0 src="hostsite.com/embedq2.php?id=123&frame_id=embed1"></iframe>
+```
+The id and frame_id aren't totally necessary, but recommended.
+
+For a custom resize listener, style like:
 ```
 <div id="embed1wrap" style="overflow:visible;position:relative">
  <iframe id="embed1" style="position:absolute;z-index:1" frameborder=0 src="hostsite.com/embedq2.php?id=123&frame_id=embed1"></iframe>
 </div>
 ```
-
-If there are multiple embeds on one page, and there's a possibility the mathquill 
-palette from the first could overlap the second quesiton, you'll need to adjust 
-the z-index values so that the questions higher in the page have higher z-indexes.
 
 Setup your iframe with the following query string parameters:
 * `id` (required):  IMathAS question ID
@@ -47,6 +49,8 @@ Resize.
   * `wrap_height`: a number of pixels for the iframe wrapper
   * `frame_id`:  the frame_id passed in the query string
 * On receiving this message, the embedding system should adjust the height on the specified iframe and associated wrapper to the specified pixel height.
+* You can use `https://www.myopenmath.com/javascript/embedqresizer.js` as the resize listener. Note that it will wrap the iframe
+  in a div to get positioning to work right.
 
 
 ### Change Question or Redisplay
@@ -109,16 +113,18 @@ Create an iframe with src https://hostsite.com/embedq2.php with query string par
 * `theme` (optional):  A theme name (without the .css) to use in place of the system default.
 
 
-Wrap the iframe and style like this:
+Create an iframe. If using the premade resize listener, or for simple cases, style like:
+```
+<iframe id="embed1" style="width:100%" frameborder=0 src="hostsite.com/embedq2.php?jwt=...&frame_id=embed1"></iframe>
+```
+The id and frame_id aren't totally necessary, but recommended.
+
+For a custom resize listener, wrap the iframe and style like this:
 ```
 <div id="embed1wrap" style="overflow:visible;position:relative">
  <iframe id="embed1" style="position:absolute;z-index:1" frameborder=0 src="hostsite.com/embedq2.php?jwt=...&frame_id=embed1"></iframe>
 </div>
 ```
-
-If there are multiple embeds on one page, and there's a possibility the mathquill 
-palette from the first could overlap the second quesiton, you'll need to adjust 
-the z-index values so that the questions higher in the page have higher z-indexes.
 
 ### Submitting
 If using `jssubmit=1` (the default), to submit the question send a postMessage to the iframe with the message "submit".
@@ -133,6 +139,8 @@ The embedding system should implement a postMessage listener, that can handle th
       * `wrap_height`: a number of pixels for the iframe wrapper
       * `frame_id`:  the frame_id passed in the query string
    * On receiving this message, the embedding system should adjust the height on the specified iframe and associated wrapper to the specified pixel height.
+   * You can use `https://www.myopenmath.com/javascript/embedqresizer.js` as the resize listener. Note that it will wrap the iframe
+  in a div to get positioning to work right.
 * After submit.  
    * MyOpenMath will send a stringified JSON with elements:
       * `subject`: `lti.ext.imathas.result`

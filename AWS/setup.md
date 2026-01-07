@@ -76,6 +76,12 @@ during the install.  Make sure no sensitive information is in these files; the
 In a `.ebextensions` directory of your repo, copy in these files, if desired,
 and commit.
 
+#### 01-logformat.sh
+
+This should go in `.platform/hooks/postdeploy/` rather than `.ebextensions`.  
+This changes the log format to include `X-Forwarded-For` so you can see the actual
+user IP rather than just the ALB IP.  This replaces `custom_log.config`
+
 #### 01run.config
 
 runs security updates
@@ -84,18 +90,18 @@ runs security updates
 
 Blacklists an out-of-date certificate
 
-#### cgi.config
+#### cgibin.conf
 
-Loads cgi modules, used for mimetex
+Loads cgi modules, used for mimetex.  This goes in `.platform/hooks/postdeploy/` not `.ebextensions`.
 
-#### custom_log.config
+#### custom_log.old
 
-Adjusts the log format to include the user's IP rather than just the load
-balancer's.
+Adjusted the log format to include the user's IP rather than just the load
+balancer's.  This doesn't work right; use the 01-logformat.sh instead.
 
-#### deflate.config
+#### deflate.conf
 
-Turns on gzip for a bunch of mime types
+Turns on gzip for a bunch of mime types.  This goes in `.platform/hooks/postdeploy/` not `.ebextensions`.
 
 #### mimetex.config
 
@@ -106,6 +112,10 @@ Pulls a compiled mimetex binary from S3.  The config.php then uses
 
 Installs freetype-devel.  Not sure if this is really necessary, but may be
 for image-based graph generation with text.
+
+### phperrors.config
+
+Fixes the PHP error log location for Cloudwatch streaming
 
 #### phpini.config
 
