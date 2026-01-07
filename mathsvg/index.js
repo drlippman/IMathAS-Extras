@@ -58,6 +58,23 @@ cleanupOldCache();
 // Run cleanup daily
 setInterval(cleanupOldCache, 24 * 60 * 60 * 1000);
 
+// Check for allowed domain
+app.use((req, res, next) => {
+  const allowedDomains = [
+    'https://mydomain.com',
+    'http://localhost'
+  ];
+
+  const referer = req.headers.referer || req.headers.referrer;
+  const isAllowed = allowedDomains.some(domain => referer.includes(domain));
+
+  if (referer && !isAllowed) {
+    return res.status(403).send('Access denied');
+  }
+
+  next();
+});
+
 
 // Set up MathJax
 const adaptor = liteAdaptor();
