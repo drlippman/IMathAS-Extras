@@ -72,6 +72,16 @@ app.use((req, res, next) => {
     return res.status(403).send('Access denied');
   }
 
+  // Set CORS headers to allow fetching
+  if (req.headers.origin) {
+    const allowedOrigin = allowedDomains.find(domain => req.headers.origin.includes(domain));
+    if (allowedOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    } else {
+      return res.status(403).send('Access denied');
+    }
+  }
+
   next();
 });
 
