@@ -47,6 +47,9 @@ set to allow connections on port 3000.
 This sets up a node server that can render tex to svg images.  This can be used
 as an endpoint for $mathimgurl instead of a mimetex server.
 
+There are two versions here: `mathsvg` which uses mathjax 3, and `mathsvg4` which
+uses mathjax 4.  Either will work.
+
 * Create a directory and copy into it index.js and package.json
 * Go into the directory and run `npm install`
 * If it's on the same server as a livepoll server, can probably reference the 
@@ -65,6 +68,25 @@ of autostart config.
 
 Note that the mathsvg server runs on port 3001, so make sure your server is
 set to allow connections on port 3001.
+
+Alternatively, if you're running apache on the same server, you could enable proxy on the server
+```
+a2enmod proxy
+a2enmod proxy_http
+a2enmod ssl
+a2enmod headers
+systemctl reload apache2
+```
+
+then edit your .conf file for apache and add
+```
+ProxyPreserveHost On
+ProxyRequests Off
+SSLProxyEngine On
+ProxyPass        /mathsvg/  https://127.0.0.1:3001/
+ProxyPassReverse /mathsvg/  https://127.0.0.1:3001/
+```
+then `systemctl reload apache2`
 
 ## mmltex
 This script will attempt to convert all the `<math>` tags in an HTML document

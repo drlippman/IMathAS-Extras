@@ -4,13 +4,8 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
-const { mathjax } = require('mathjax-full/js/mathjax');
-// since mathimgurl currently uses tex, we'll use that instead of asciimath
-// const { AsciiMath } = require('mathjax-full/js/input/asciimath');
-const { TeX } = require('mathjax-full/js/input/tex');
-const { SVG } = require('mathjax-full/js/output/svg');
-const { liteAdaptor } = require('mathjax-full/js/adaptors/liteAdaptor');
-const { RegisterHTMLHandler } = require('mathjax-full/js/handlers/html');
+const MathJax = require('mathjax');
+MathJax.init({loader: {load: ['input/tex', 'output/svg']}});
 
 const app = express();
 const PORT = 3001;
@@ -66,7 +61,7 @@ app.use((req, res, next) => {
   ];
 
   const referer = req.headers.referer || req.headers.referrer;
-  
+
   if (referer) {
     const isAllowed = allowedDomains.some(domain => referer.includes(domain));
     if (!isAllowed) {
@@ -87,15 +82,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// Set up MathJax
-const adaptor = liteAdaptor();
-RegisterHTMLHandler(adaptor);
-
-//const asciimath = new AsciiMath();
-const tex = new TeX();
-const svg = new SVG({ fontCache: 'none' });
-const html = mathjax.document('', { InputJax: tex, OutputJax: svg });
 
 app.get('/math', async (req, res) => {
   let math = req.url.split('?')[1] || ''; // req.query.expr;
@@ -121,8 +107,9 @@ app.get('/math', async (req, res) => {
     }
 
     // Render math to SVG
-    const node = html.convert(math, { display: true });
-    const svgOutput = adaptor.innerHTML(node);
+    const svg = MathJax.tex2svg(math, {display: true});
+    const svgNode = MathJax.startup.adaptor.firstChild(svg);
+    const svgOutput = MathJax.startup.adaptor.serializeXML(svgNode);
 
     // store in cache
     fsp.writeFile(cachePath, svgOutput).catch(console.error);
@@ -142,6 +129,6 @@ var options = {
     cert: fs.readFileSync(__dirname + '/../livepoll/certs/fullchain.pem'),
     ca: fs.readFileSync(__dirname + '/../livepoll/certs/chain.pem')
 };
-https.createServer(options, app).listen(3001, () => {
-  console.log(`Server running on port 3001`);
+https.createServer(options, app).listen(3002, () => {
+  console.log(`Server running on port 3002`);
 });
