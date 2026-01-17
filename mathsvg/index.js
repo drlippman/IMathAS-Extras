@@ -11,6 +11,8 @@ const { TeX } = require('mathjax-full/js/input/tex');
 const { SVG } = require('mathjax-full/js/output/svg');
 const { liteAdaptor } = require('mathjax-full/js/adaptors/liteAdaptor');
 const { RegisterHTMLHandler } = require('mathjax-full/js/handlers/html');
+require('mathjax-full/js/input/tex/cancel/CancelConfiguration');
+require('mathjax-full/js/input/tex/color/ColorConfiguration');
 
 const app = express();
 const PORT = 3001;
@@ -93,9 +95,8 @@ const adaptor = liteAdaptor();
 RegisterHTMLHandler(adaptor);
 
 //const asciimath = new AsciiMath();
-const tex = new TeX();
+const tex = new TeX({ packages: ['base','ams', 'cancel', 'color'] });
 const svg = new SVG({ fontCache: 'none' });
-const html = mathjax.document('', { InputJax: tex, OutputJax: svg });
 
 app.get('/math', async (req, res) => {
   let math = req.url.split('?')[1] || ''; // req.query.expr;
@@ -121,6 +122,7 @@ app.get('/math', async (req, res) => {
     }
 
     // Render math to SVG
+    const html = mathjax.document('', { InputJax: tex, OutputJax: svg });
     const node = html.convert(math, { display: true });
     const svgOutput = adaptor.innerHTML(node);
 
