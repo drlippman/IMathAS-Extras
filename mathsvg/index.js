@@ -1,6 +1,5 @@
 const express = require('express');
-const https = require('https');
-const fs = require('fs');
+const http = require('http');
 const fsp = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
@@ -138,12 +137,6 @@ app.get('/math', async (req, res) => {
   }
 });
 
-var options = {
-    // adjust these paths to your certificate locations
-    key: fs.readFileSync(__dirname + '/../livepoll/certs/privkey.pem'),
-    cert: fs.readFileSync(__dirname + '/../livepoll/certs/fullchain.pem'),
-    ca: fs.readFileSync(__dirname + '/../livepoll/certs/chain.pem')
-};
-https.createServer(options, app).listen(3001, () => {
+http.createServer(app).listen(3001, () => {
   console.log(`Server running on port 3001`);
 });

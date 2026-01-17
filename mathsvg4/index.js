@@ -1,11 +1,13 @@
 const express = require('express');
-const https = require('https');
-const fs = require('fs');
+const http = require('http');
 const fsp = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const MathJax = require('mathjax');
-MathJax.init({loader: {load: ['input/tex', 'output/svg']}});
+MathJax.init({
+  loader: {load: ['input/tex', 'output/svg', '[tex]/color', '[tex]/cancel']},
+  tex: { packages: {'[+]': ['cancel', 'color']} }
+});
 
 const app = express();
 const PORT = 3001;
@@ -107,7 +109,7 @@ app.get('/math', async (req, res) => {
     }
 
     // Render math to SVG
-    const svg = MathJax.tex2svg(math, {display: true});
+    const svg = await MathJax.tex2svgPromise(math, {display: true});
     const svgNode = MathJax.startup.adaptor.firstChild(svg);
     const svgOutput = MathJax.startup.adaptor.serializeXML(svgNode);
 
@@ -123,12 +125,6 @@ app.get('/math', async (req, res) => {
   }
 });
 
-var options = {
-    // adjust these paths to your certificate locations
-    key: fs.readFileSync(__dirname + '/../livepoll/certs/privkey.pem'),
-    cert: fs.readFileSync(__dirname + '/../livepoll/certs/fullchain.pem'),
-    ca: fs.readFileSync(__dirname + '/../livepoll/certs/chain.pem')
-};
-https.createServer(options, app).listen(3002, () => {
-  console.log(`Server running on port 3002`);
+http.createServer(app).listen(3001, () => {
+  console.log(`Server running on port 3001`);
 });

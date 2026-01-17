@@ -52,13 +52,6 @@ uses mathjax 4.  Either will work.
 
 * Create a directory and copy into it index.js and package.json
 * Go into the directory and run `npm install`
-* If it's on the same server as a livepoll server, can probably reference the 
-  existing certs directory from that. Otherwise, create a `certs` subdirectory
-
-The code is set up to run on SSL, so you'll need to put your SSL keys in the
-directory indicated in the code.  If you already have certs being copied for
-livepoll, it'll be easiest to just put the right path for those. Otherwise, you can
-follow the approach for livepoll to copy certs.
 
 To keep the server running in the background, you'll need to set up some kind
 of autostart config.  
@@ -66,10 +59,8 @@ of autostart config.
   path as needed.
 * Start the server using `sudo systemctl start mathsvg`
 
-Note that the mathsvg server runs on port 3001, so make sure your server is
-set to allow connections on port 3001.
-
-Alternatively, if you're running apache on the same server, you could enable proxy on the server
+The code is set up to run without SSL, with the intent of using an existing Apache setup on
+the server as a SSL proxy. You can enable proxy on the server
 ```
 a2enmod proxy
 a2enmod proxy_http
@@ -82,9 +73,8 @@ then edit your .conf file for apache and add
 ```
 ProxyPreserveHost On
 ProxyRequests Off
-SSLProxyEngine On
-ProxyPass        /mathsvg/  https://127.0.0.1:3001/
-ProxyPassReverse /mathsvg/  https://127.0.0.1:3001/
+ProxyPass        /mathsvg/  http://127.0.0.1:3001/
+ProxyPassReverse /mathsvg/  http://127.0.0.1:3001/
 ```
 then `systemctl reload apache2`
 
