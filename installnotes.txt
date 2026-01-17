@@ -39,4 +39,24 @@ Restart service
   Start the server using: sudo systemctl start livepoll
   To make sure it autoruns on reboot, run: sudo systemctl enable livepoll
 
-
+Install mathsvg
+  Make mathsvg directory 
+  wget index.js and package.json from mathsvg4 folder 
+  npm install 
+Enable proxy
+  run:
+    a2enmod proxy
+    a2enmod proxy_http
+    a2enmod ssl
+    a2enmod headers
+    systemctl reload apache2
+  edit /etc/apache2/sites-available/<somename>.conf and add
+    ProxyPreserveHost On
+    ProxyRequests Off
+    ProxyPass        /mathsvg/  http://127.0.0.1:3001/
+    ProxyPassReverse /mathsvg/  http://127.0.0.1:3001/
+  run systemctl reload apache2
+Restart service
+  Copy mathsvg.service to /lib/systemd/system/, editing the ExecStart path as needed.
+  Start the server using: sudo systemctl start mathsvg
+  To make sure it autoruns on reboot, run: sudo systemctl enable mathsvg
