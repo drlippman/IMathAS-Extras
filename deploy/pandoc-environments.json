@@ -1,0 +1,43 @@
+{
+    "environments": [
+        {
+            "environment_label": "dev",
+            "account": 725843923591,
+            "region": "us-west-2",
+            "terraform_state_key": "accounts/lumen-stage/us-west-2/dev/pandoc-app/config/terraform.tfstate",
+            "ssm_prefix": "/lumen-services/us-west-2/dev/pandoc",
+            "fargate": {
+                "cluster_name": "dev-pandoc"
+            },
+            "webapp": {
+                "ssm_prefix": "/lumen-services/us-west-2/dev/pandoc/webapp"
+            }
+        },
+        {
+            "environment_label": "staging",
+            "account": 725843923591,
+            "region": "us-west-2",
+            "terraform_state_key": "accounts/lumen-stage/us-west-2/staging/pandoc-app/config/terraform.tfstate",
+            "ssm_prefix": "/lumen-services/us-west-2/staging/pandoc",
+            "fargate": {
+                "cluster_name": "staging-pandoc"
+            },
+            "webapp": {
+                "ssm_prefix": "/lumen-services/us-west-2/staging/pandoc/webapp"
+            }
+        },
+        {
+            "environment_label": "prod",
+            "account": 523740042085,
+            "region": "us-west-2",
+            "terraform_state_key": "accounts/lumen-prod/us-west-2/prod/pandoc-app/config/terraform.tfstate",
+            "ssm_prefix": "/lumen-services/us-west-2/prod/pandoc",
+            "fargate": {
+                "cluster_name": "prod-pandoc"
+            },
+            "webapp": {
+                "ssm_prefix": "/lumen-services/us-west-2/prod/pandoc/webapp"
+            }
+        }
+    ]
+}

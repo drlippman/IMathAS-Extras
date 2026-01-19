@@ -1,0 +1,174 @@
+name: build-and-push
+env:
+  LIVEPOLL_ECR_REPOSITORY: livepoll
+  PANDOC_ECR_REPOSITORY: pandoc
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+  push:
+    branches:
+    - main
+    - rc/**
+
+jobs:
+  validate-terraform:
+    runs-on: ubuntu-latest
+    name: Validate Terraform
+    timeout-minutes: 5
+    permissions:
+      id-token: write   # Used for AWS OIDC auth
+      contents: read
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout project
+    
+    - name: OIDC Auth to AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::${{ secrets.aws_user_account }}:role/ci-oidc-role
+        role-session-name: github-actions
+        role-duration-seconds: 900
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.9.8 
+
+    - name: Livepoll Terraform Init
+      run: terraform init -backend=false
+      working-directory: deploy/terraform/livepoll
+
+    - name: Livepoll Terraform Format
+      run: terraform fmt -check
+      working-directory: deploy/terraform/livepoll
+
+    - name: Livepoll Terraform Validate
+      id: validate
+      run: terraform validate -no-color
+      working-directory: deploy/terraform/livepoll
+    
+    - name: Pandoc Terraform Init
+      run: terraform init -backend=false
+      working-directory: deploy/terraform/pandoc
+
+    - name: Pandoc Terraform Format
+      run: terraform fmt -check
+      working-directory: deploy/terraform/pandoc
+
+    - name: Pandoc Terraform Validate
+      run: terraform validate -no-color
+      working-directory: deploy/terraform/pandoc
+
+  build-and-push-livepoll:
+    runs-on: ubuntu-latest
+    name: Build and Push Livepoll Docker Image
+    timeout-minutes: 30
+    needs: [validate-terraform]
+    permissions:
+      id-token: write   # Used for AWS OIDC auth
+      contents: read
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout project
+    
+    - id: read_tree_hash
+      name: Read git tree hash
+      run: |
+        tree_hash=$(git rev-parse HEAD:)
+        echo "tree_hash=$tree_hash" >> $GITHUB_OUTPUT
+    
+    - id: set_branch_name
+      name: Read git branch name
+      run: |
+        branch_name=${GITHUB_REF##*/}
+        echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+
+    - uses: ./.github/actions/private-ecr-login
+      name: Login to Private ECR
+      id: login-ecr
+    
+    - name: Check for prebuilt image
+      id: prebuilt_check
+      run: |
+        docker manifest inspect ${{ steps.login-ecr.outputs.registry }}/${{ env.LIVEPOLL_ECR_REPOSITORY }}:gha-tree-${{ steps.read_tree_hash.outputs.tree_hash }} || echo "image_exists=$?" >> $GITHUB_OUTPUT
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      if: steps.prebuilt_check.outputs.image_exists != 0
+    
+    - name: Docker build and push
+      uses: docker/build-push-action@v5
+      if: steps.prebuilt_check.outputs.image_exists != 0
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      with:
+        context: .
+        file: docker/Dockerfile-livepoll
+        platforms: linux/amd64
+        push: true
+        tags: |
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.LIVEPOLL_ECR_REPOSITORY }}:gha-commit-${{ github.sha }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.LIVEPOLL_ECR_REPOSITORY }}:gha-tree-${{ steps.read_tree_hash.outputs.tree_hash }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.LIVEPOLL_ECR_REPOSITORY }}:gha-build-${{ steps.set_branch_name.outputs.branch_name }}-${{ github.run_number }}-${{ github.run_attempt }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.LIVEPOLL_ECR_REPOSITORY }}:gha-build-${{ steps.set_branch_name.outputs.branch_name }}-latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  build-and-push-pandoc:
+    runs-on: ubuntu-latest
+    name: Build and Push Pandoc Docker Image
+    timeout-minutes: 30
+    needs: [validate-terraform]
+    permissions:
+      id-token: write   # Used for AWS OIDC auth
+      contents: read
+      actions: read
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout project
+    
+    - id: read_tree_hash
+      name: Read git tree hash
+      run: |
+        tree_hash=$(git rev-parse HEAD:)
+        echo "tree_hash=$tree_hash" >> $GITHUB_OUTPUT
+    
+    - id: set_branch_name
+      name: Read git branch name
+      run: |
+        branch_name=${GITHUB_REF##*/}
+        echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+
+    - uses: ./.github/actions/private-ecr-login
+      name: Login to Private ECR
+      id: login-ecr
+    
+    - name: Check for prebuilt image
+      id: prebuilt_check
+      run: |
+        docker manifest inspect ${{ steps.login-ecr.outputs.registry }}/${{ env.PANDOC_ECR_REPOSITORY }}:gha-tree-${{ steps.read_tree_hash.outputs.tree_hash }} || echo "image_exists=$?" >> $GITHUB_OUTPUT
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      if: steps.prebuilt_check.outputs.image_exists != 0
+    
+    - name: Docker build and push
+      uses: docker/build-push-action@v5
+      if: steps.prebuilt_check.outputs.image_exists != 0
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      with:
+        context: .
+        file: docker/Dockerfile-pandoc
+        platforms: linux/amd64
+        push: true
+        tags: |
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.PANDOC_ECR_REPOSITORY }}:gha-commit-${{ github.sha }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.PANDOC_ECR_REPOSITORY }}:gha-tree-${{ steps.read_tree_hash.outputs.tree_hash }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.PANDOC_ECR_REPOSITORY }}:gha-build-${{ steps.set_branch_name.outputs.branch_name }}-${{ github.run_number }}-${{ github.run_attempt }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.PANDOC_ECR_REPOSITORY }}:gha-build-${{ steps.set_branch_name.outputs.branch_name }}-latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
