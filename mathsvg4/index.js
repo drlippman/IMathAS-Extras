@@ -12,6 +12,19 @@ MathJax.init({
 const app = express();
 const PORT = 3001;
 
+//  Minimal CSS needed for stand-alone image
+//
+const CSS = [
+  'svg a{fill:blue;stroke:blue}',
+  '[data-mml-node="merror"]>g{fill:red;stroke:red}',
+  '[data-mml-node="merror"]>rect[data-background]{fill:yellow;stroke:none}',
+  '[data-frame],[data-line]{stroke-width:70px;fill:none}',
+  '.mjx-dashed{stroke-dasharray:140}',
+  '.mjx-dotted{stroke-linecap:round;stroke-dasharray:0,140}',
+  'use[data-c]{stroke-width:3px}'
+].join('');
+
+
 // Create cache directory at startup
 const CACHE_DIR = path.join(__dirname, 'math-cache');
 fsp.mkdir(CACHE_DIR, { recursive: true }).catch(console.error);
@@ -111,7 +124,8 @@ app.get('/math', async (req, res) => {
     // Render math to SVG
     const svg = await MathJax.tex2svgPromise(math, {display: true});
     const svgNode = MathJax.startup.adaptor.firstChild(svg);
-    const svgOutput = MathJax.startup.adaptor.serializeXML(svgNode);
+    let svgOutput = MathJax.startup.adaptor.serializeXML(svgNode);
+    svgOutput = svgOutput.replace(/<defs>/, `<defs><style>${CSS}</style>`);
 
     // store in cache
     fsp.writeFile(cachePath, svgOutput).catch(console.error);
