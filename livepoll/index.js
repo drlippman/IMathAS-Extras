@@ -5,9 +5,13 @@ var livepollpassword = process.env.LIVEPOLL_PASSWORD ?? 'testing';
 var useInsecureHttp = 'true' === process.env?.LIVEPOLL_USE_INSECURE_HTTP;
 
 var server = getServer(app, useInsecureHttp);
+var server2 = getServer(app, useInsecureHttp);
 server.listen(3000);
+server2.listen(8443);
 var { Server } = require('socket.io');
-var io = new Server(server, { cors: {origin: "*"}});
+var io = new Server({ cors: {origin: "*"}});
+io.attach(server);
+io.attach(server2);
 
 app.get('/ping', function(req,res) {
   res.send('pong');
