@@ -1,0 +1,91 @@
+name: terraform-deployment-workflow
+permissions:
+  id-token: write   # Used for AWS OIDC auth
+  contents: read    # This is required for actions/checkout
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment name passed from the caller workflow'
+        required: true
+        type: string
+      project:
+        description: 'Project name passed from the caller workflow'
+        required: true
+        type: string
+    secrets:
+      aws_user_account:
+        description: 'AWS Account ID for IAM users'
+        required: true
+      aws_ci_account:
+        description: 'AWS Account ID for IAM users'
+        required: true
+
+jobs:
+  # this job gets a password for public ECR to use in future steps
+  terraform-deploy:
+    name: Terraform Deployment
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout project
+    
+    - id: read_env_json
+      name: Read Environment JSON
+      run: |
+        env_json=$(jq -c '.environments[] | select(.environment_label=="${{ inputs.environment }}")' ./deploy/${{ inputs.project }}-environments.json)
+        echo "env_json=$env_json" >> $GITHUB_OUTPUT
+    
+    - id: set_env_metadata
+      name: Set Environment Metadata
+      run: |
+        echo "account=${{ fromJSON(steps.read_env_json.outputs.env_json).account }}" >> $GITHUB_OUTPUT
+        echo "region=${{ fromJSON(steps.read_env_json.outputs.env_json).region }}" >> $GITHUB_OUTPUT
+        echo "terraform_state_key=${{ fromJSON(steps.read_env_json.outputs.env_json).terraform_state_key }}" >> $GITHUB_OUTPUT
+        echo "ssm_prefix=${{ fromJSON(steps.read_env_json.outputs.env_json).ssm_prefix }}" >> $GITHUB_OUTPUT
+        echo "cluster_name=${{ fromJSON(steps.read_env_json.outputs.env_json).fargate.cluster_name }}" >> $GITHUB_OUTPUT
+    
+
+    - name: OIDC Auth to AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::${{ secrets.aws_user_account }}:role/ci-oidc-role
+        role-session-name: github-actions
+        role-duration-seconds: 900
+    
+    # Based on https://developer.hashicorp.com/terraform/tutorials/automation/github-actions
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.9.8 
+    
+    - name: Terraform Init
+      id: init
+      run: terraform init -backend-config=key=${{ steps.set_env_metadata.outputs.terraform_state_key }}
+      working-directory: deploy/terraform/${{ inputs.project }}
+
+    - name: Terraform Format
+      id: fmt
+      run: terraform fmt -check
+      working-directory: deploy/terraform/${{ inputs.project }}
+
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate -no-color
+      working-directory: deploy/terraform/${{ inputs.project }}
+
+    - name: Terraform Plan
+      id: plan
+      run: |
+        terraform plan -no-color -input=false -out terraform.tfplan \
+          -var environment=${{ inputs.environment }} \
+          -var account=${{ steps.set_env_metadata.outputs.account }} \
+          -var region=${{ steps.set_env_metadata.outputs.region }}
+      working-directory: deploy/terraform/${{ inputs.project }}
+
+    - name: Terraform Apply
+      id: apply
+      run: terraform apply -auto-approve -input=false terraform.tfplan
+      working-directory: deploy/terraform/${{ inputs.project }}

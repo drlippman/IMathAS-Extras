@@ -1,0 +1,19 @@
+FROM node:22
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+		jq \
+		awscli \
+	&& apt-get clean
+
+WORKDIR /app
+
+COPY livepoll/* /app/
+
+RUN npm install
+
+COPY docker/livepoll-entrypoint.sh /usr/bin/docker-entrypoint.sh
+
+ENTRYPOINT [ "/usr/bin/docker-entrypoint.sh" ]
+
+CMD ["node", "/app/index.js"]

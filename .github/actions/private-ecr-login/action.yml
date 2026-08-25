@@ -1,0 +1,39 @@
+name: 'Log into Private ECR'
+description: 'Github OIDC auth and assume role into account, then use AWS ECR Login action'
+inputs:
+  aws_ci_account:
+    description: 'AWS Account ID for CI'
+    required: false
+    default: 824635284302
+  aws_user_account:
+    description: 'AWS Account ID for users'
+    required: false
+    default: 265299512749
+outputs:
+  registry:
+    description: "ECR Registry"
+    value: ${{ steps.login-ecr.outputs.registry }}
+runs:
+  using: "composite"
+  steps:
+    - name: assume oidc role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::${{ inputs.aws_user_account }}:role/ci-oidc-role
+        role-session-name: github-actions-oidc
+        role-duration-seconds: 900
+    - name: assume target role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::${{ inputs.aws_ci_account }}:role/ci-role
+        role-session-name: github-actions-private-ecr
+        role-duration-seconds: 900
+    
+    - name: Login to Private ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2

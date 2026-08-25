@@ -1,0 +1,31 @@
+name: terraform-deploy
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'dev' 
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      project:
+        description: 'Project'
+        required: true
+        default: 'livepoll' 
+        type: choice
+        options:
+        - livepoll
+        - pandoc
+jobs:
+  terraform-deploy:
+    name: Terraform Deployment
+    uses: ./.github/workflows/terraform-deploy.yml
+    with:
+      environment: ${{ github.event.inputs.environment }}
+      project: ${{ github.event.inputs.project }}
+    secrets:
+      aws_user_account: ${{ secrets.AWS_USER_ACCOUNT }}
+      aws_ci_account: ${{ secrets.AWS_CI_ACCOUNT }}
