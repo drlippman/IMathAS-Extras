@@ -202,6 +202,35 @@ else
   echo "livepoll enabled but not started (needs certs first): sudo systemctl start livepoll"
 fi
 
+# -------------------------------------------------------------- enable auto updates
+dnf install -y dnf-automatic
+
+# Apply all available updates (use "security" to limit to security fixes only)
+sed -i 's/^apply_updates.*/apply_updates = yes/' /etc/dnf/automatic.conf
+sed -i 's/^upgrade_type.*/upgrade_type = default/' /etc/dnf/automatic.conf
+
+# Run the install timer (download + apply) daily
+systemctl enable --now dnf-automatic-install.timer
+
+# Set update time; is UTC time by default
+mkdir -p /etc/systemd/system/dnf-automatic-install.timer.d
+cat > /etc/systemd/system/dnf-automatic-install.timer.d/override.conf <<'EOF'
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 10:00
+RandomizedDelaySec=0
+Persistent=true
+EOF
+systemctl daemon-reload
+systemctl restart dnf-automatic-install.timer
+
+# Reboot if needed after updates
+dnf install -y dnf-utils
+cat > /etc/cron.d/reboot-if-needed <<'EOF'
+30 10 * * * root needs-restarting -r >/dev/null || /sbin/shutdown -r now
+EOF
+
+# -------------------------------------------------------------- clean up
 rm -rf /tmp/imathas-extras
 set +x
 if [ -n "${GENERATED_PASSWORD:-}" ]; then
