@@ -12,6 +12,13 @@ MathJax.init({
 const app = express();
 const PORT = 3001;
 
+// Restrict requests to these domains (matched against Referer and Origin).
+// Uncomment and edit to enable; when undefined, requests from any domain are allowed.
+// const allowedDomains = [
+//   'https://mydomain.com',
+//   'http://localhost'
+// ];
+
 //  Minimal CSS needed for stand-alone image
 //
 const CSS = [
@@ -68,12 +75,12 @@ cleanupOldCache();
 // Run cleanup daily
 setInterval(cleanupOldCache, 24 * 60 * 60 * 1000);
 
-// Check for allowed domain
+// Check for allowed domain (skipped when allowedDomains is not defined)
 app.use((req, res, next) => {
-  const allowedDomains = [
-    'https://mydomain.com',
-    'http://localhost'
-  ];
+  if (typeof allowedDomains === 'undefined') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return next();
+  }
 
   const referer = req.headers.referer || req.headers.referrer;
 

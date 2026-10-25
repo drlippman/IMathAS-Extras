@@ -254,4 +254,5 @@ set +x
 if [ -n "${GENERATED_PASSWORD:-}" ]; then
   echo "Generated livepoll password (set this in IMathAS too): ${LIVEPOLL_PASSWORD}"
 fi
+echo "NOTE: Be sure to edit allowedDomains in ${MATHSVG_DIR}/index.js (uncomment and set your domains), then: sudo systemctl restart mathsvg"
 echo "Done. Open ports 80, 443 and 8443 (livepoll; also 3000 if you use it) in the EC2 security group."
