@@ -6,6 +6,12 @@
 #   DOMAIN  - hostname for the Let's Encrypt cert (DNS must already point at this server).
 #             If unset, the certbot / livepoll-cert steps are skipped.
 #   EMAIL   - contact email for Let's Encrypt (required when DOMAIN is set)
+#   DNS_PLUGIN - certbot DNS plugin used for the DNS-01 challenge (e.g. cloudflare, route53,
+#             digitalocean, google). Lets the cert be issued, and renewed unattended, while DOMAIN
+#             still points at the old server. If blank (default), the HTTP-01 challenge via Apache
+#             is used instead, which requires DOMAIN to already point at this server. For route53 the instance needs an IAM role
+#             allowing route53:ListHostedZones, route53:GetChange and route53:ChangeResourceRecordSets.
+#   DNS_CREDENTIALS - path to the plugin's credentials file (not needed for route53 with an IAM role)
 #   LIVEPOLL_PASSWORD - shared secret for livepoll (must match the IMathAS config). Stored in a
 #             root-only systemd drop-in. If empty, a random one is generated and printed at the end.
 #
@@ -18,6 +24,8 @@ export HOME=/root   # user-data runs without HOME, which npm/pip can trip over
 DOMAIN="${DOMAIN:-}"
 EMAIL="${EMAIL:-}"
 LIVEPOLL_PASSWORD="${LIVEPOLL_PASSWORD:-}"
+DNS_PLUGIN="${DNS_PLUGIN:-}"
+DNS_CREDENTIALS="${DNS_CREDENTIALS:-}"
 
 PROMPT_IN=""
 if [ -t 0 ]; then PROMPT_IN=/dev/stdin
@@ -112,7 +120,7 @@ id "$SVC_USER" &>/dev/null || useradd --system --shell /sbin/nologin --home-dir 
 # ---------------------------------------------------------------- certbot (pip in a venv, per AWS guidance for AL2023)
 python3 -m venv /opt/certbot
 /opt/certbot/bin/pip install --upgrade pip
-/opt/certbot/bin/pip install certbot certbot-apache
+/opt/certbot/bin/pip install certbot certbot-apache ${DNS_PLUGIN:+"certbot-dns-${DNS_PLUGIN}"}
 ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 
 # auto-renew twice daily
@@ -183,7 +191,17 @@ chown -R "$SVC_USER":"$SVC_USER" "$LIVEPOLL_DIR"
 
 # ---------------------------------------------------------------- certificate
 if [ -n "$DOMAIN" ] && [ -n "$EMAIL" ]; then
-  certbot --apache -d "$DOMAIN" -m "$EMAIL" --agree-tos --no-eff-email -n
+  if [ -n "$DNS_PLUGIN" ]; then
+    # DNS-01 validation: works before DOMAIN points here, and the authenticator is saved in
+    # /etc/letsencrypt/renewal/${DOMAIN}.conf so the cron renewal needs no intervention.
+    CERTBOT_DNS_ARGS=(-a "dns-${DNS_PLUGIN}" -i apache)
+    if [ -n "$DNS_CREDENTIALS" ]; then
+      CERTBOT_DNS_ARGS+=("--dns-${DNS_PLUGIN}-credentials" "$DNS_CREDENTIALS")
+    fi
+    certbot run "${CERTBOT_DNS_ARGS[@]}" -d "$DOMAIN" -m "$EMAIL" --agree-tos --no-eff-email -n
+  else
+    certbot --apache -d "$DOMAIN" -m "$EMAIL" --agree-tos --no-eff-email -n
+  fi
   # first-time copy (renewals are handled by the deploy hook)
   cp -L "/etc/letsencrypt/live/${DOMAIN}/"*.pem "$LIVEPOLL_DIR/certs/"
   chmod a+r "$LIVEPOLL_DIR/certs/"*.pem
