@@ -1,51 +1,109 @@
-var AWS = require('aws-sdk');
-var rds = new AWS.RDS();
+const {
+    RDSClient,
+    DescribeDBSnapshotsCommand,
+    CopyDBSnapshotCommand,
+    DeleteDBSnapshotCommand,
+    StartExportTaskCommand
+} = require("@aws-sdk/client-rds");
 
-function copysnapshot(source, dest) {
-    rds.deleteDBSnapshot({
-        DBSnapshotIdentifier: dest
-    }, function(err, data) {
-        if (err) {} //console.log(err, err.stack); // an error occurred
-        //else     console.log(data);           // successful response
-    });
-    rds.copyDBSnapshot({
+const rds = new RDSClient({});
+
+const DB_IDENTIFIER = "EDIT ME";  // like "imathas"
+const S3_BUCKET = "EDIT ME";  // like "dbdump"
+const IAM_ROLE_ARN = "EDIT ME"; 
+const KMS_KEY_ID = "EDIT ME";
+const S3_EXPORT_PREFIX = "EDIT ME";  // like "rds-exports/imathas"
+
+async function copySnapshot(source, dest) {
+    // Attempt to delete first in case it already exists, ignore errors
+    try {
+        await rds.send(new DeleteDBSnapshotCommand({ DBSnapshotIdentifier: dest }));
+    } catch (err) {}
+
+    const result = await rds.send(new CopyDBSnapshotCommand({
         SourceDBSnapshotIdentifier: source,
-        TargetDBSnapshotIdentifier: dest
-    }, function(err, data) {
-        if (err) console.log(err, err.stack); // an error occurred
-        else     console.log("Created:" + dest);           // successful response
-    });
+        TargetDBSnapshotIdentifier: dest,
+        KmsKeyId: KMS_KEY_ID
+    }));
+    return result.DBSnapshot;
 }
-exports.handler = (event, context, callback) => {
-    // TODO implement
-    
-    var DB_IDENTIFIER = "**EDIT ME**";
 
-    rds.describeDBSnapshots({  //get list of automated snapshots
-	    DBInstanceIdentifier: DB_IDENTIFIER,
-	    SnapshotType: "automated"
-    }, function(err, data) {
-	    if (err) { 
-		    console.log(err, err.stack);
-	    } else {
-    		data.DBSnapshots.sort(function(a,b) {  //sort by creation date
-    		    return (a.SnapshotCreateTime<b.SnapshotCreateTime)?1:-1
-    		});
-    		var source_dbidentifier = data.DBSnapshots[0].DBSnapshotIdentifier; //get ID of latest snapshot
-    		//find "number of weeks since Jan 1 2018"
-    		var week_count = Math.floor((Date.now() - Date.parse("Jan 1 2018"))/(7*24*60*60*1000));
-    		var now = new Date();
-    		var month = now.getMonth();
-    		var year = now.getFullYear();
-    		if (month%6 == 0 && week_count%4==0) { //bi-yearly
-    		    copysnapshot(source_dbidentifier, DB_IDENTIFIER+'-biyearly-'+month+'-'+year);
-    		} else if (week_count%4==0) { //monthly
-    		    var monthn = month%6;
-    		    copysnapshot(source_dbidentifier, DB_IDENTIFIER+'-monthly-'+monthn);
-    		} else { //weekly, since we're running this once a week
-    		    var weekn = week_count%4;
-    		    copysnapshot(source_dbidentifier, DB_IDENTIFIER+'-weekly-'+weekn);
-    		}
-    	}
-    });
+async function deleteSnapshot(snapshotId) {
+    try {
+        await rds.send(new DeleteDBSnapshotCommand({ DBSnapshotIdentifier: snapshotId }));
+        console.log(`Deleted old snapshot: ${snapshotId}`);
+    } catch (err) {
+        console.log(`Warning: could not delete ${snapshotId}:`, err.message);
+    }
+}
+
+async function exportSnapshotToS3(snapshotArn, exportId) {
+    return rds.send(new StartExportTaskCommand({
+        ExportTaskIdentifier: exportId,
+        SourceArn: snapshotArn,
+        S3BucketName: S3_BUCKET,
+        S3Prefix: S3_EXPORT_PREFIX,
+        IamRoleArn: IAM_ROLE_ARN,
+        KmsKeyId: KMS_KEY_ID
+    }));
+}
+
+async function getManualSnapshots(prefix) {
+    const result = await rds.send(new DescribeDBSnapshotsCommand({
+        DBInstanceIdentifier: DB_IDENTIFIER,
+        SnapshotType: "manual"
+    }));
+	// newest first sort
+    return result.DBSnapshots
+        .filter(s => s.DBSnapshotIdentifier.startsWith(prefix))
+        .sort((a, b) => b.SnapshotCreateTime - a.SnapshotCreateTime);
+}
+
+async function pruneSnapshots(prefix, keep) {
+    const snapshots = await getManualSnapshots(prefix);
+    const toDelete = snapshots.slice(keep);
+    for (const snap of toDelete) {
+        await deleteSnapshot(snap.DBSnapshotIdentifier);
+    }
+}
+
+exports.handler = async (event, context) => {
+    // Get the oldest automated snapshot
+    const describeResult = await rds.send(new DescribeDBSnapshotsCommand({
+        DBInstanceIdentifier: DB_IDENTIFIER,
+        SnapshotType: "automated"
+    }));
+
+	// oldest first sort
+    const snapshots = describeResult.DBSnapshots.sort((a, b) =>
+        a.SnapshotCreateTime - b.SnapshotCreateTime
+    );
+
+    if (snapshots.length === 0) {
+        console.log("No automated snapshots found");
+        return;
+    }
+
+    const oldestSnapshot = snapshots[0];
+    const sourceId = oldestSnapshot.DBSnapshotIdentifier;
+
+    const now = new Date();
+    const dateStr = oldestSnapshot.SnapshotCreateTime.toISOString().slice(0, 10); // e.g. "2025-03-15"
+    const isMonthStart = now.getDate() <= 7;
+
+    if (isMonthStart) {
+        // Monthly: export to S3
+        const monthStr = oldestSnapshot.SnapshotCreateTime.toISOString().slice(0, 7); // e.g. "2025-03"
+        const exportId = `${DB_IDENTIFIER}-monthly-${monthStr}`;
+        await exportSnapshotToS3(oldestSnapshot.DBSnapshotArn, exportId);
+        console.log(`Started S3 export: ${exportId}`);
+    }
+    
+	await pruneSnapshots(`${DB_IDENTIFIER}-weekly-`, 1);  
+
+    // Weekly: RDS snapshot
+    const weeklyId = `${DB_IDENTIFIER}-weekly-${dateStr}`;
+    await copySnapshot(sourceId, weeklyId);
+    console.log(`Created weekly RDS snapshot: ${weeklyId}`);
+    
 };

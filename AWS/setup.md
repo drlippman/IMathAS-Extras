@@ -71,37 +71,19 @@ the `loginpage.php`, `infoheader.php`, and `newinstructor.php` files generated
 during the install.  Make sure no sensitive information is in these files; the
 `getenv` is used to protect those.
 
-### Add Beanstalk extensions
+### Add Beanstalk extensions, hooks, and httpd conf
 
 In a `.ebextensions` directory of your repo, copy in these files, if desired,
 and commit.
 
-#### 01-logformat.sh
-
-This should go in `.platform/hooks/postdeploy/` rather than `.ebextensions`.  
-This changes the log format to include `X-Forwarded-For` so you can see the actual
-user IP rather than just the ALB IP.  This replaces `custom_log.config`
-
 #### 01run.config
 
-runs security updates
+Runs security updates
 
-#### blacklist_addtrust_ca.config
+#### env.config
 
-Blacklists an out-of-date certificate
-
-#### cgibin.conf
-
-Loads cgi modules, used for mimetex.  This goes in `.platform/hooks/postdeploy/` not `.ebextensions`.
-
-#### custom_log.old
-
-Adjusted the log format to include the user's IP rather than just the load
-balancer's.  This doesn't work right; use the 01-logformat.sh instead.
-
-#### deflate.conf
-
-Turns on gzip for a bunch of mime types.  This goes in `.platform/hooks/postdeploy/` not `.ebextensions`.
+Pulls secrets from secrets manager and puts them in environment variables.
+This will require editing after setting up your secrets manager.
 
 #### mimetex.config
 
@@ -113,7 +95,7 @@ Pulls a compiled mimetex binary from S3.  The config.php then uses
 Installs freetype-devel.  Not sure if this is really necessary, but may be
 for image-based graph generation with text.
 
-### phperrors.config
+#### phperrors.config
 
 Fixes the PHP error log location for Cloudwatch streaming
 
@@ -123,12 +105,37 @@ Extends the default max_filesize and similar parameters in php.ini.
 
 #### redis.config
 
+Installs redis, if you're going to use redis for session store.
+
+In a `.platform/hooks/postdeploy/` directory, copy
+
+#### 01-logformat.sh
+
+This changes the log format to include `X-Forwarded-For` so you can see the actual
+user IP rather than just the ALB IP.  This replaces `custom_log.config`
+
+In a `.platform/httpd/conf.d/` directory, copy
+
+#### cgibin.conf
+
+Loads cgi modules, used for mimetex.  
+
+#### deflate.conf
+
+Turns on gzip for a bunch of mime types.  
+
+#### dontlog.conf
+
+Disables access logging of static files, to reduce the amount of logs generated.
+
+### redis
+
 Optional.  Only needed if using redis for session store. By default, the
 MySQL database is used, and that'll work fine for most installations.  If you 
 decide to use redis for sessions, you'll need to add 
 `$CFG['redis'] = getenv('REDIS_SERVER');` to your `config.php`, and the 
 REDIS_SERVER to the Beanstalk environment properties.  The address should look
-like `tcp://site.cache.amazonaws.com:6379`
+like `tls://site.cache.amazonaws.com:6379`
 
 ## Setting up the Environment
 
@@ -148,12 +155,13 @@ In AWS, go to RDS and create a new MySQL database.  Use the latest 5.x version.
 Give the database a simple identifier, like `prod`, and setup a master username
 and password.
 
-Pick an instance size based on your expected load.  A db.m5.large is big enough
-for 100k+ students.  A t3 instance might be sufficient if you have much lower
-traffic.
+Pick an instance size based on your expected load.  A db.m6g.large 
+(or large in a more recent class) is big enough for 100k+ students, 
+though db.r6g.large would be even better.  A t3 instance 
+might be sufficient if you have much lower traffic.
 
-For storage type, General Purpose SSD is fine.  Allocate whatever storage you
-think you'll need.
+For storage type, General Purpose SSD (gp3) is fine.  Allocate whatever storage 
+you think you'll need.
 
 For high-availability, enable the Multi-AZ deployment.
 
@@ -170,6 +178,17 @@ you setup on your dev environment.
 Under Additional configuration, the default settings for Backup, Encryption, and
 Monitoring are probably fine.
 
+### Secrets Manager
+
+Go to Secrets Manager.  Store a new secret.
+* For Secret Type, select Other type of secret.
+* In the key/value pairs, enter the key and value for any environment values
+  referenced in your config, like `getenv('DB_SERVER')`.
+* Edit the env.config beanstalk extension to replace `SECRET-ARN` with the ARN 
+  of your new secret store.  Add additional lines for any other values you're 
+  using, like redis server, FCM keys, YouTube API keys, etc.
+
+
 ### Beanstalk
 
 Next, go to Elastic Beanstalk.  As a note, we're creating the database outside
@@ -179,7 +198,7 @@ database.
 In Beanstalk, click Create Application
 * Select Web server environment
 * Give it a name
-* For platform, choose PHP 7.3 (or higher) running on 64 bit Amazon Linux 2
+* For platform, choose PHP 8.5 (or higher) running on 64 bit Amazon Linux 2023
 * For Application code, select Upload your code.  Now export your git repo 
  (using `git archive` or a GUI tool) and upload that file as your code.
 * Select the Configure more options 
@@ -234,6 +253,9 @@ That will require first setting up a Hosted Zone and nameservers and such.
 
 Alternatively you may be able to create a CNAME record that maps 
 `www.yoursite.com` to your Beanstalk environment URL.
+
+Or, you can use Cloudflare for DNS, which if proxy is enabled can CDN
+static files and provide firewall.
 
 ## Other services
 
@@ -313,7 +335,7 @@ $CFG['email']['SES_SERVER'] = 'email.<region>.amazonaws.com';
 
 ### Triggers
 
-Certain features need timed operations.  For that, we can use Cloudwatch rules
+Certain features need timed operations.  For that, we can use EventBridge Schedules
 to trigger these events. None of these features are essential.
 
 #### LTI Queue
@@ -343,11 +365,10 @@ $CFG['LTI']['authcode'] = getenv('SNS_AUTHCODE');
 $CFG['LTI']['usequeue'] = true;
 ```
   
-In CloudWatch
-- Click on Events: Rules.
-- Click Create rule
-- Event Source: Schedule
-- Fixed rate of: 1 minute
+In EventBridge Schedules
+- Click on Scheduler: Schedules
+- Click Create Schedule
+- Recurring schedule, with rate-baesd schedule of: 1 minute
 - Click Add target, and select SNS Topic, then your LTIqueue topic.
 - Give the rule a name and Create rule
 
@@ -368,11 +389,12 @@ In Simple Notification Service:
 - Repeat, creating a topic and subscription for runcoursecleanup, 
   with an endpoint of `https://yoursite.com/util/runcoursecleanup.php?authcode=###` 
 
-In Cloudwatch:
-- Under Rules, create a new rule
-- Use Schedule: `0 9 * * ? *`
+In EventBridge Schedules
+- Click on Scheduler: Schedules
+- Click Create Schedule
+- Use Cron Schedule: `0 9 * * ? *`
 - Under Add Target, select SNS Topic and select the one you set up earlier for tagcoursecleanup
-- Create another rule, with schedule:  `0/10 07-12 * * ? *`
+- Create another schedule, with schedule:  `0/10 07-12 * * ? *`
 - Under Add Target, select SNS Topic and select the one you set up earlier for runcoursecleanup
 
 #### SES bounce
@@ -397,16 +419,149 @@ In SES:
 
 #### dbbackup
 
-AWS maintains automated backups, but those expire in 7 days.  If you require
-longer-term backups, this uses a Lambda function to copy the automated snapshots
-to rotating longer-term manual snapshots.
+AWS maintains automated backups, but those expire in 7 days by default, and are expensive
+to keep longer.  If you require longer-term backups, this uses a Lambda function to copy 
+the automated snapshots to rotating longer-term manual snapshots. It retains weekly snapshots
+for a month, and exports monthlies to S3. 
 
+- In S3:
+  - Create a bucket
+- In IAM:
+  - Create an rds-to-s3 role with the policy below
+  - Create an dbbackup role with the policy below
+- In KMS
+  - Create a key.  In the key policy, add the policy below
 - In Lambda:
-    - Create a new function using Node 6
-    - Code entry: inline
-    - Handler: index.handler
-    - Code:  Copy from `dbcopy.js` in this repo, being sure to edit the DB_IDENTIFIER
-- In Cloudwatch:
-	- Under Rules, create a new rule
-	- Use Schedule: `0 10 ? * SUN *`
+  - Create a new function using Node
+  - Code entry: inline
+  - Handler: index.handler
+  - Code:  Copy from `dbcopy.js` in this repo, being sure to edit the fields
+- In EventBridge Schedules, to have it run once a week:
+	- Under Schedules, create a new schedule
+	- Use Cron Schedule: `0 10 ? * SUN *`
 	- Add Target:  Lambda function, and select the function you created
+
+
+rds-to-s3 role policy
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "S3BucketAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject",
+                "s3:GetBucketLocation",
+                "s3:ListBucket",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts"
+            ],
+            "Resource": [
+                "YOUR_S3-BUCKET-ARN",
+                "YOUR_S3-BUCKET-ARN/*"
+            ]
+        },
+        {
+            "Sid": "KMSAccess",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+            ],
+            "Resource": "ADD YOUR KMS KEY ARN"
+        }
+    ]
+}
+```
+
+dbbackup role policy
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "rds:DescribeReservedDBInstances",
+                "logs:CreateLogStream",
+                "rds:DescribeDBSnapshots",
+                "rds:CreateDBSnapshot",
+                "rds:CopyDBSnapshot",
+                "rds:DescribeDBInstances",
+                "rds:ModifyDBInstance",
+                "rds:DeleteDBSnapshot",
+                "rds:StartExportTask",
+                "logs:CreateLogGroup",
+                "logs:PutLogEvents",
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "S3ExportAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetBucketLocation",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "YOUR_S3-BUCKET-ARN",
+                "YOUR_S3-BUCKET-ARN/*"
+            ]
+        },
+        {
+            "Sid": "PassExportRole",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "ARN-OF-rds-to-s3-ROLE",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": [
+                        "export.rds.amazonaws.com",
+                        "rds.amazonaws.com"
+                    ]
+                }
+            }
+        }
+    ]
+}
+```
+
+KMS key policy
+```
+{
+  "Version": "2012-10-17",
+  "Id": "key-consolepolicy-3",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::SITE-ID:root"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow Lambda use",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "ARN-OF-DBBACKUP-ROLE"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+```
