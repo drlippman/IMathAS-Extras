@@ -1,4 +1,5 @@
 [Unit]
+StartLimitIntervalSec=0
 Description=LivePoll server
 After=network.target
 
@@ -7,7 +8,14 @@ Environment=NODE_PORT=3000
 Type=simple
 User=ubuntu
 ExecStart=/usr/bin/node /home/ubuntu/livepoll/index.js
-Restart=on-failure
+Restart=always
+RestartSec=2
+# resource limits so a runaway process can't take down the whole server
+LimitNOFILE=65536
+CPUQuota=150%
+MemoryHigh=600M
+MemoryMax=800M
+TasksMax=200
 
 [Install]
 WantedBy=multi-user.target

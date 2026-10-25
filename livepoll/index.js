@@ -6,10 +6,15 @@ var useInsecureHttp = 'true' === process.env?.LIVEPOLL_USE_INSECURE_HTTP;
 
 var server = getServer(app, useInsecureHttp);
 var server2 = getServer(app, useInsecureHttp);
+[server, server2].forEach(function(s) {
+  s.headersTimeout = 15000;
+  s.requestTimeout = 30000;
+  s.maxConnections = 5000;
+});
 server.listen(3000);
 server2.listen(8443);
 var { Server } = require('socket.io');
-var io = new Server({ cors: {origin: "*"}});
+var io = new Server({ cors: {origin: "*"}, maxHttpBufferSize: 1e4, connectTimeout: 10000 });
 io.attach(server);
 io.attach(server2);
 
@@ -77,13 +82,19 @@ app.get('/stopq', function(req, res) {
 
 
 io.on('connection', function(socket){
-  var room = socket.handshake.query.room.toString();
-  var now = socket.handshake.query.now.toString();
-  var sig = socket.handshake.query.sig;
+  var q = socket.handshake.query;
+  if (typeof q.room !== 'string' || typeof q.now !== 'string' || typeof q.sig !== 'string' || q.room.length > 100) {
+  	  socket.disconnect(true);
+  	  return;
+  }
+  var room = q.room;
+  var now = q.now;
+  var sig = q.sig;
 
   var tocheck = room+livepollpassword+now;
   if (sha1(tocheck)!=sig && sha256(tocheck)!=sig) {
   	  console.log("signature error on connect");
+  	  socket.disconnect(true);  // don't leave unauthenticated sockets open
   	  return;
   }
   
@@ -150,3 +161,7 @@ function sha256(data) {
 	generator.update(data);
 	return generator.digest('base64');
 }
+
+// Log and exit on fatal errors so systemd restarts us cleanly
+process.on('uncaughtException', function(err) { console.error('uncaughtException', err); process.exit(1); });
+process.on('unhandledRejection', function(err) { console.error('unhandledRejection', err); process.exit(1); });

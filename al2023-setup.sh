@@ -157,8 +157,10 @@ install_service /tmp/imathas-extras/mathsvg/mathsvg.service mathsvg "$MATHSVG_DI
 cat > /etc/httpd/conf.d/extras-proxy.conf <<'EOF'
 ProxyPreserveHost On
 ProxyRequests Off
-ProxyPass        /mathsvg/  http://127.0.0.1:3001/
+# timeout/retry keep Apache workers from piling up behind a hung node process
+ProxyPass        /mathsvg/  http://127.0.0.1:3001/ timeout=15 connectiontimeout=3 retry=0
 ProxyPassReverse /mathsvg/  http://127.0.0.1:3001/
+ProxyTimeout 15
 EOF
 apachectl configtest
 systemctl reload httpd
@@ -219,6 +221,20 @@ if [ -n "$DOMAIN" ] && [ -n "$EMAIL" ]; then
 else
   echo "livepoll enabled but not started (needs certs first): sudo systemctl start livepoll"
 fi
+
+# -------------------------------------------------------------- watchdog
+# Restart the node services if they stop answering (e.g. event loop stuck in a CPU spin)
+cat > /usr/local/bin/extras-watchdog <<'EOF'
+#!/bin/sh
+curl -sf -m 5 http://127.0.0.1:3001/ping >/dev/null || { logger -t extras-watchdog "restarting mathsvg"; systemctl restart mathsvg; }
+if systemctl is-active --quiet livepoll; then
+  curl -skf -m 5 https://127.0.0.1:8443/ping >/dev/null || { logger -t extras-watchdog "restarting livepoll"; systemctl restart livepoll; }
+fi
+EOF
+chmod 755 /usr/local/bin/extras-watchdog
+cat > /etc/cron.d/extras-watchdog <<'EOF'
+* * * * * root /usr/local/bin/extras-watchdog
+EOF
 
 # -------------------------------------------------------------- enable auto updates
 dnf install -y dnf-automatic
